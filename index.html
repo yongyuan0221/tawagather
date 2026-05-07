@@ -524,6 +524,8 @@ function actionCreate(fd) {
     "Who's organizing this?",
     "Your name will appear as the event host.",
     async name => {
+      // Navigate first so onSnapshot's mid-write render hits 'board', not 'create'
+      navigate('board');
       const data = {
         title:       fd.title.trim(),
         category:    fd.category,
@@ -537,9 +539,10 @@ function actionCreate(fd) {
         createdAt:   new Date().toISOString(),
       };
       const ref = await addDoc(eventsCol, data);
+      // Mark joined before re-rendering so the card shows "Joined – Leave" immediately
       sessionEventIds.add(ref.id);
       toast('Event created! 🎉');
-      navigate('board');
+      render();
     }
   );
 }
