@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>99 Ranch Events Board</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'primary':                    '#9e001f',
+            'on-primary':                 '#ffffff',
+            'primary-container':          '#c8102e',
+            'on-primary-container':       '#ffdad8',
+            'primary-fixed':              '#ffdad8',
+            'primary-fixed-dim':          '#ffb3b1',
+            'on-primary-fixed':           '#410007',
+            'on-primary-fixed-variant':   '#92001c',
+            'inverse-primary':            '#ffb3b1',
+            'secondary':                  '#1b6d24',
+            'on-secondary':               '#ffffff',
+            'secondary-container':        '#a0f399',
+            'on-secondary-container':     '#217128',
+            'secondary-fixed':            '#a3f69c',
+            'secondary-fixed-dim':        '#88d982',
+            'on-secondary-fixed':         '#002204',
+            'on-secondary-fixed-variant': '#005312',
+            'tertiary':                   '#004d90',
+            'on-tertiary':                '#ffffff',
+            'tertiary-container':         '#1865b5',
+            'on-tertiary-container':      '#d4e3ff',
+            'tertiary-fixed':             '#d5e3ff',
+            'tertiary-fixed-dim':         '#a6c8ff',
+            'on-tertiary-fixed':          '#001c3b',
+            'on-tertiary-fixed-variant':  '#004786',
+            'error':                      '#ba1a1a',
+            'on-error':                   '#ffffff',
+            'error-container':            '#ffdad6',
+            'on-error-container':         '#93000a',
+            'surface':                    '#f9f9f9',
+            'surface-dim':                '#dadada',
+            'surface-bright':             '#f9f9f9',
+            'surface-container-lowest':   '#ffffff',
+            'surface-container-low':      '#f3f3f3',
+            'surface-container':          '#eeeeee',
+            'surface-container-high':     '#e8e8e8',
+            'surface-container-highest':  '#e2e2e2',
+            'surface-variant':            '#e2e2e2',
+            'on-surface':                 '#1a1c1c',
+            'on-surface-variant':         '#5c403f',
+            'outline':                    '#906f6e',
+            'outline-variant':            '#e5bdbb',
+            'background':                 '#f9f9f9',
+            'on-background':              '#1a1c1c',
+            'inverse-surface':            '#2f3131',
+            'inverse-on-surface':         '#f1f1f1',
+            'surface-tint':               '#bf0229',
+          },
+          fontFamily: {
+            sans: ['"Work Sans"', 'sans-serif'],
+          },
+          fontSize: {
+            'headline-lg': ['32px', { lineHeight: '1.2',  fontWeight: '700' }],
+            'headline-md': ['24px', { lineHeight: '1.3',  fontWeight: '600' }],
+            'headline-sm': ['20px', { lineHeight: '1.4',  fontWeight: '600' }],
+            'body-lg':     ['18px', { lineHeight: '1.6',  fontWeight: '400' }],
+            'body-md':     ['16px', { lineHeight: '1.5',  fontWeight: '400' }],
+            'label-lg':    ['14px', { lineHeight: '1.2',  fontWeight: '600', letterSpacing: '0.02em' }],
+            'label-md':    ['12px', { lineHeight: '1.2',  fontWeight: '500' }],
+          },
+          spacing: {
+            'xs':               '4px',
+            'base':             '8px',
+            'sm':               '12px',
+            'md':               '24px',
+            'lg':               '40px',
+            'xl':               '64px',
+            'gutter':           '16px',
+            'container-margin': '20px',
+          },
+          borderRadius: {
+            'DEFAULT': '0.25rem',
+            'sm':      '0.25rem',
+            'md':      '0.5rem',
+            'lg':      '0.75rem',
+            'xl':      '1rem',
+            '2xl':     '1.5rem',
+            'full':    '9999px',
+          },
+          boxShadow: {
+            'card': '0 2px 8px rgba(0,0,0,0.06)',
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      user-select: none;
+    }
+    .icon-fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    .slide-up { animation: slideUp 0.22s ease-out; }
+    .fade-in  { animation: fadeIn  0.18s ease-out; }
+
+    /* smooth progress bar */
+    .progress-fill { transition: width 0.4s ease; }
+
+    /* datetime-local browser chrome fix */
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: pointer; }
+  </style>
+</head>
+
+<body class="bg-background text-on-surface font-sans antialiased overflow-x-hidden">
+
+  <!-- ── Main app container ─────────────────────────────────────────── -->
+  <div id="app" class="mx-auto max-w-[960px] min-h-screen flex flex-col bg-surface shadow-sm relative"></div>
+
+  <!-- ── Name-capture modal ──────────────────────────────────────────── -->
+  <div id="name-modal" class="hidden fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
+    <div id="name-backdrop" class="absolute inset-0 bg-black/40 backdrop-blur-sm fade-in"></div>
+    <div class="relative w-full sm:max-w-md mx-auto bg-surface-container-lowest rounded-t-2xl sm:rounded-xl shadow-2xl p-md pb-8 sm:pb-md slide-up">
+      <div class="w-10 h-1 bg-surface-variant rounded-full mx-auto mb-md sm:hidden"></div>
+      <h2 class="text-headline-sm text-on-surface mb-xs" id="name-modal-title">What's your name?</h2>
+      <p  class="text-body-md text-on-surface-variant mb-md" id="name-modal-desc">No account needed — just so others know who you are.</p>
+      <label class="block mb-sm">
+        <span class="text-label-lg text-on-surface block mb-xs">Your name</span>
+        <input id="name-input" type="text" maxlength="40" placeholder="e.g. Maria S."
+          class="w-full h-12 px-sm rounded-md border border-outline bg-surface text-on-surface text-body-md
+                 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all
+                 placeholder:text-on-surface-variant/50" />
+        <p id="name-error" class="hidden text-label-md text-error mt-xs">Please enter your name to continue.</p>
+      </label>
+      <p class="text-label-md text-on-surface-variant flex items-center gap-xs mb-md">
+        <span class="material-symbols-outlined text-[14px]">info</span>
+        Your name is only saved for this session.
+      </p>
+      <div class="flex gap-sm">
+        <button id="name-cancel-btn" class="flex-1 h-12 rounded-full border border-outline text-on-surface text-label-lg hover:bg-surface-container transition-colors">
+          Cancel
+        </button>
+        <button id="name-confirm-btn" class="flex-1 h-12 rounded-full bg-primary-container text-on-primary text-label-lg hover:bg-primary transition-colors shadow-sm">
+          Continue
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Cancel-confirmation modal ───────────────────────────────────── -->
+  <div id="confirm-modal" class="hidden fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
+    <div id="confirm-backdrop" class="absolute inset-0 bg-black/40 backdrop-blur-sm fade-in"></div>
+    <div class="relative w-full sm:max-w-sm mx-auto bg-surface-container-lowest rounded-t-2xl sm:rounded-xl shadow-2xl p-md pb-8 sm:pb-md slide-up">
+      <div class="w-10 h-1 bg-surface-variant rounded-full mx-auto mb-md sm:hidden"></div>
+      <div class="flex items-center gap-sm mb-sm">
+        <span class="material-symbols-outlined text-[28px] text-error icon-fill">cancel</span>
+        <h2 class="text-headline-sm text-on-surface">Cancel this event?</h2>
+      </div>
+      <p class="text-body-md text-on-surface-variant mb-md">
+        All attendees will see a cancellation notice. This cannot be undone.
+      </p>
+      <div class="flex gap-sm">
+        <button id="confirm-back-btn" class="flex-1 h-12 rounded-full border border-outline text-on-surface text-label-lg hover:bg-surface-container transition-colors">
+          Go Back
+        </button>
+        <button id="confirm-ok-btn" class="flex-1 h-12 rounded-full bg-error text-on-error text-label-lg hover:opacity-90 transition-opacity">
+          Yes, Cancel It
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Toast ───────────────────────────────────────────────────────── -->
+  <div id="toast"
+    class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[200]
+           bg-inverse-surface text-inverse-on-surface
+           px-md py-sm rounded-full text-label-lg shadow-xl
+           whitespace-nowrap max-w-[90vw] text-center fade-in pointer-events-none">
+  </div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ─── Constants ──────────────────────────────────────────────────────────────
+const STORAGE_KEY = '99ranch_events_v1';
+
+const CAT_ICON = { sports: 'sports_soccer', food: 'rice_bowl' };
+const CAT_LABEL = { sports: 'Sports', food: 'Food & Drinks' };
+
+// ─── Session state (in-memory only – cleared on tab close) ───────────────────
+let sessionName = null;         // current user's name this session
+let sessionEventIds = new Set(); // event IDs the user joined/hosted this session
+
+// ─── App state ───────────────────────────────────────────────────────────────
+const state = {
+  view: 'board',           // 'board' | 'create' | 'detail' | 'manage'
+  filter: 'all',           // 'all' | 'sports' | 'food'
+  selectedId: null,        // id of selected event
+  editing: false,          // whether manage view is in edit mode
+};
+
+// ─── Events (localStorage) ───────────────────────────────────────────────────
+let events = loadEvents();
+
+function loadEvents() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (_) {}
+  return makeSampleEvents();
+}
+
+function saveEvents() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(events)); } catch (_) {}
+}
+
+function makeSampleEvents() {
+  const now = new Date();
+  function dt(offsetDays, h, m = 0) {
+    const d = new Date(now);
+    d.setDate(d.getDate() + offsetDays);
+    d.setHours(h, m, 0, 0);
+    return d.toISOString();
+  }
+  const daysToSat = ((6 - now.getDay()) + 7) % 7 || 7;
+  return [
+    {
+      id: 'sample-1',
+      title: 'Friday Night Soccer',
+      category: 'sports',
+      dateTime: dt(1, 18),
+      location: 'Central Park Field 3',
+      cap: 10,
+      description: 'Pickup soccer after the shift! All skill levels welcome. Bring cleats if you have them — or just show up.',
+      host: 'Alex Chen',
+      attendees: ['Alex Chen', 'Maria S.', 'David L.', 'Sarah W.', 'Kevin T.', 'Jenny M.', 'Tom B.', 'Lisa K.'],
+      cancelled: false,
+      createdAt: now.toISOString(),
+    },
+    {
+      id: 'sample-2',
+      title: 'Late Night Ramen Run',
+      category: 'food',
+      dateTime: dt(2, 21),
+      location: 'Daikokuya Little Tokyo',
+      cap: 12,
+      description: 'Late dinner after closing shift. First round of gyoza is on me!',
+      host: 'Sarah Kim',
+      attendees: ['Sarah Kim', 'Mike R.', 'Jenny L.'],
+      cancelled: false,
+      createdAt: now.toISOString(),
+    },
+    {
+      id: 'sample-3',
+      title: 'Saturday Hoops',
+      category: 'sports',
+      dateTime: dt(daysToSat, 10),
+      location: 'YMCA Downtown',
+      cap: 10,
+      description: "Casual basketball Saturday morning. We'll play until noon then grab brunch nearby.",
+      host: 'Mike Torres',
+      attendees: ['Mike Torres', 'Alex C.', 'Danny W.', 'Jay L.', 'Ryan K.', 'Chris M.', 'Sam H.', 'Tony P.', 'Joe R.', 'Paul S.'],
+      cancelled: false,
+      createdAt: now.toISOString(),
+    },
+    {
+      id: 'sample-4',
+      title: 'Team Hot Pot Lunch',
+      category: 'food',
+      dateTime: dt(7, 12),
+      location: 'Haidilao – Arcadia',
+      cap: 16,
+      description: "Monthly team lunch! All departments welcome. Let's catch up over hot pot.",
+      host: 'Linda Wu',
+      attendees: ['Linda Wu', 'James T.', 'Amy K.', 'Robert M.', 'Christine L.'],
+      cancelled: false,
+      createdAt: now.toISOString(),
+    },
+  ];
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function uid() {
+  return 'evt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+}
+
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = (str ?? '');
+  return d.innerHTML;
+}
+
+function fmtDateTime(iso) {
+  const d = new Date(iso);
+  const now = new Date();
+  const isSameDay = (a, b) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth()    === b.getMonth()    &&
+    a.getDate()     === b.getDate();
+  const tom = new Date(now); tom.setDate(now.getDate() + 1);
+  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  if (isSameDay(d, now))  return `Today, ${time}`;
+  if (isSameDay(d, tom))  return `Tomorrow, ${time}`;
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + ', ' + time;
+}
+
+function fmtDateTimeLong(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) +
+         ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function toLocalDtInput(iso) {
+  // Convert ISO to value compatible with datetime-local input
+  const d = new Date(iso);
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function minDtInput() {
+  return toLocalDtInput(new Date().toISOString());
+}
+
+function capacityStatus(ev) {
+  const n = ev.attendees.length, c = ev.cap, pct = n / c;
+  if (n >= c)   return { label: 'Full',        labelCls: 'text-on-surface-variant',  barCls: 'bg-outline',           pct: 100 };
+  if (pct>=0.9) return { label: 'Almost Full', labelCls: 'text-primary',             barCls: 'bg-primary-container', pct: pct*100 };
+  return          { label: 'Available',    labelCls: 'text-secondary',          barCls: 'bg-secondary',         pct: pct*100 };
+}
+
+function isFull(ev)   { return ev.attendees.length >= ev.cap; }
+function isJoined(ev) { return sessionEventIds.has(ev.id); }
+
+function getEvent(id) { return events.find(e => e.id === id) ?? null; }
+
+function filteredSorted() {
+  return events
+    .filter(e => state.filter === 'all' || e.category === state.filter)
+    .sort((a, b) => {
+      if (a.cancelled !== b.cancelled) return a.cancelled ? 1 : -1;
+      return new Date(a.dateTime) - new Date(b.dateTime);
+    });
+}
+
+// ─── Toast ───────────────────────────────────────────────────────────────────
+let _toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.add('hidden'), 2800);
+}
+
+// ─── Navigation ──────────────────────────────────────────────────────────────
+function navigate(view, id = null) {
+  state.view = view;
+  state.selectedId = id;
+  state.editing = false;
+  render();
+  window.scrollTo({ top: 0 });
+}
+
+// ─── Name-modal logic ────────────────────────────────────────────────────────
+let _nameCallback = null;
+
+function promptName(title, desc, cb) {
+  if (sessionName) { cb(sessionName); return; }
+  document.getElementById('name-modal-title').textContent = title || "What's your name?";
+  document.getElementById('name-modal-desc').textContent  = desc  || 'Just so others know who you are.';
+  document.getElementById('name-input').value = '';
+  document.getElementById('name-error').classList.add('hidden');
+  document.getElementById('name-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('name-input').focus(), 50);
+  _nameCallback = cb;
+}
+
+function closeNameModal(confirmed) {
+  const name = document.getElementById('name-input').value.trim();
+  if (confirmed) {
+    if (!name) {
+      document.getElementById('name-error').classList.remove('hidden');
+      document.getElementById('name-input').focus();
+      return;
+    }
+    sessionName = name;
+    document.getElementById('name-modal').classList.add('hidden');
+    if (_nameCallback) { _nameCallback(name); _nameCallback = null; }
+  } else {
+    document.getElementById('name-modal').classList.add('hidden');
+    _nameCallback = null;
+  }
+}
+
+document.getElementById('name-confirm-btn').addEventListener('click', () => closeNameModal(true));
+document.getElementById('name-cancel-btn').addEventListener('click',  () => closeNameModal(false));
+document.getElementById('name-backdrop').addEventListener('click',    () => closeNameModal(false));
+document.getElementById('name-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') closeNameModal(true);
+  document.getElementById('name-error').classList.add('hidden');
+});
+
+// ─── Cancel-confirm modal ─────────────────────────────────────────────────────
+let _cancelCallback = null;
+
+function confirmCancel(cb) {
+  document.getElementById('confirm-modal').classList.remove('hidden');
+  _cancelCallback = cb;
+}
+
+document.getElementById('confirm-ok-btn').addEventListener('click', () => {
+  document.getElementById('confirm-modal').classList.add('hidden');
+  if (_cancelCallback) { _cancelCallback(); _cancelCallback = null; }
+});
+document.getElementById('confirm-back-btn').addEventListener('click', () => {
+  document.getElementById('confirm-modal').classList.add('hidden');
+  _cancelCallback = null;
+});
+document.getElementById('confirm-backdrop').addEventListener('click', () => {
+  document.getElementById('confirm-modal').classList.add('hidden');
+  _cancelCallback = null;
+});
+
+// ─── Actions ─────────────────────────────────────────────────────────────────
+function actionJoin(id) {
+  const ev = getEvent(id);
+  if (!ev || ev.cancelled) return;
+
+  if (isJoined(ev)) {
+    // Unjoin — hosts can leave too (event still exists)
+    if (sessionName) {
+      const idx = ev.attendees.indexOf(sessionName);
+      if (idx > -1) ev.attendees.splice(idx, 1);
+    }
+    sessionEventIds.delete(id);
+    saveEvents();
+    toast("You've left the event");
+    render();
+    return;
+  }
+
+  if (isFull(ev)) return;
+
+  promptName(
+    "What's your name?",
+    "Just so others know who's coming — no account needed.",
+    name => {
+      // Duplicate guard (case-insensitive)
+      if (ev.attendees.some(a => a.toLowerCase() === name.toLowerCase())) {
+        sessionEventIds.add(id);
+        toast("You're already on the list!");
+        render(); return;
+      }
+      if (isFull(ev)) { toast("Sorry, this event just filled up!"); render(); return; }
+      ev.attendees.push(name);
+      sessionEventIds.add(id);
+      saveEvents();
+      toast("You're in! 🎉");
+      render();
+    }
+  );
+}
+
+function actionCreate(fd) {
+  promptName(
+    "Who's organizing this?",
+    "Your name will appear as the event host.",
+    name => {
+      const ev = {
+        id:          uid(),
+        title:       fd.title.trim(),
+        category:    fd.category,
+        dateTime:    new Date(fd.dateTime).toISOString(),
+        location:    fd.location.trim(),
+        cap:         Math.max(2, parseInt(fd.cap, 10)),
+        description: (fd.description || '').trim(),
+        host:        name,
+        attendees:   [name],
+        cancelled:   false,
+        createdAt:   new Date().toISOString(),
+      };
+      events.push(ev);
+      sessionEventIds.add(ev.id);
+      saveEvents();
+      toast('Event created! 🎉');
+      navigate('board');
+    }
+  );
+}
+
+function actionEdit(id, fd) {
+  const ev = getEvent(id);
+  if (!ev) return;
+  const newCap = Math.max(ev.attendees.length, parseInt(fd.cap, 10));
+  Object.assign(ev, {
+    title:       fd.title.trim(),
+    category:    fd.category,
+    dateTime:    new Date(fd.dateTime).toISOString(),
+    location:    fd.location.trim(),
+    cap:         newCap,
+    description: (fd.description || '').trim(),
+  });
+  saveEvents();
+  toast('Event updated');
+  state.editing = false;
+  render();
+}
+
+function actionCancel(id) {
+  confirmCancel(() => {
+    const ev = getEvent(id);
+    if (!ev) return;
+    ev.cancelled = true;
+    saveEvents();
+    toast('Event cancelled');
+    render();
+  });
+}
+
+// ─── Avatar color palette ─────────────────────────────────────────────────────
+const AVATAR_COLORS = [
+  'bg-tertiary-container text-on-tertiary-container',
+  'bg-secondary-container text-on-secondary-container',
+  'bg-primary-container text-on-primary-container',
+  'bg-surface-container-high text-on-surface',
+];
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Shared: nav header ───────────────────────────────────────────────────────
+function hdrBack(label, onBack) {
+  return `
+    <header class="sticky top-0 z-10 bg-surface/95 backdrop-blur-md border-b border-surface-variant
+                   px-container-margin py-sm flex items-center gap-sm">
+      <button onclick="${onBack}"
+        class="w-12 h-12 flex items-center justify-center rounded-full
+               hover:bg-surface-container transition-colors -ml-2 shrink-0">
+        <span class="material-symbols-outlined text-[24px] text-on-surface">arrow_back</span>
+      </button>
+      <h1 class="text-headline-sm text-on-surface truncate">${esc(label)}</h1>
+    </header>`;
+}
+
+// ─── Board view ───────────────────────────────────────────────────────────────
+function renderBoard() {
+  const list = filteredSorted();
+
+  const filterBtn = (val, label) => `
+    <button onclick="setFilter('${val}')"
+      class="flex h-[40px] shrink-0 items-center justify-center gap-xs rounded-full px-gutter text-label-lg border transition-colors ${
+        state.filter === val
+          ? 'bg-secondary-container text-on-secondary-container border-transparent shadow-sm'
+          : 'bg-surface-container text-on-surface border-outline-variant hover:bg-surface-container-high'
+      }">
+      ${label}
+    </button>`;
+
+  const cards = list.length
+    ? list.map(renderCard).join('')
+    : `<div class="flex flex-col items-center justify-center py-xl text-center gap-md">
+         <span class="material-symbols-outlined text-[72px] text-on-surface-variant/30">event_busy</span>
+         <div>
+           <p class="text-headline-sm text-on-surface-variant/50">No events yet</p>
+           <p class="text-body-md text-on-surface-variant/40 mt-xs">Be the first to create one!</p>
+         </div>
+       </div>`;
+
+  return `
+    <header class="sticky top-0 z-10 flex items-center justify-between whitespace-nowrap
+                   border-b border-surface-variant px-container-margin py-3
+                   bg-surface/95 backdrop-blur-md">
+      <div class="flex items-center gap-3 text-on-surface">
+        <div class="w-5 h-5 text-primary-container shrink-0">
+          <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" fill="currentColor"/>
+          </svg>
+        </div>
+        <h1 class="text-on-surface font-semibold text-[18px] leading-tight tracking-[-0.015em]">
+          99 Ranch Events
+        </h1>
+      </div>
+      <button onclick="navigate('create')"
+        class="flex items-center justify-center rounded-md h-12 px-gutter
+               bg-primary-container text-on-primary text-label-lg
+               hover:bg-primary transition-colors shadow-sm min-w-[110px]">
+        + New Event
+      </button>
+    </header>
+
+    <div class="flex gap-sm px-container-margin py-md overflow-x-auto no-scrollbar border-b border-surface-variant/50">
+      ${filterBtn('all', 'All')}
+      ${filterBtn('sports', '⚽ Sports')}
+      ${filterBtn('food', '🍜 Food & Drinks')}
+    </div>
+
+    <main class="flex flex-col gap-md px-container-margin py-md pb-xl">
+      ${cards}
+    </main>`;
+}
+
+function renderCard(ev) {
+  const st = capacityStatus(ev);
+  const full = isFull(ev);
+  const joined = isJoined(ev);
+  const canManage = sessionEventIds.has(ev.id) && !ev.cancelled;
+
+  let actionBtn = '';
+  if (ev.cancelled) {
+    actionBtn = `<div class="flex flex-1 items-center justify-center gap-xs h-12 rounded-md
+                              bg-error-container text-on-error-container text-label-lg">
+                   <span class="material-symbols-outlined text-[16px] icon-fill">cancel</span>Cancelled
+                 </div>`;
+  } else if (joined) {
+    actionBtn = `<button onclick="event.stopPropagation(); actionJoin('${ev.id}')"
+                   class="flex flex-1 items-center justify-center gap-xs h-12 rounded-md
+                          bg-secondary-container text-on-secondary-container text-label-lg
+                          hover:bg-secondary-fixed-dim transition-colors active:scale-[0.98]">
+                   <span class="material-symbols-outlined text-[18px] icon-fill">check_circle</span>
+                   Joined – Leave
+                 </button>`;
+  } else if (full) {
+    actionBtn = `<button disabled
+                   class="flex flex-1 items-center justify-center h-12 rounded-md
+                          bg-surface-container text-on-surface-variant text-label-lg cursor-not-allowed">
+                   Event Full
+                 </button>`;
+  } else {
+    actionBtn = `<button onclick="event.stopPropagation(); actionJoin('${ev.id}')"
+                   class="flex flex-1 items-center justify-center h-12 rounded-md
+                          bg-primary-container text-on-primary text-label-lg
+                          hover:bg-primary transition-colors shadow-sm active:scale-[0.98]">
+                   Join
+                 </button>`;
+  }
+
+  const manageBtn = canManage
+    ? `<button onclick="event.stopPropagation(); navigate('manage','${ev.id}')"
+         title="Manage event"
+         class="flex items-center justify-center h-12 w-12 rounded-md border border-outline-variant
+                text-on-surface-variant hover:bg-surface-container transition-colors shrink-0">
+         <span class="material-symbols-outlined text-[20px]">settings</span>
+       </button>`
+    : '';
+
+  return `
+    <article class="flex flex-col rounded-xl border border-surface-variant
+                    bg-surface-container-lowest shadow-card overflow-hidden
+                    ${ev.cancelled ? 'opacity-60' : ''}">
+
+      ${ev.cancelled ? `
+        <div class="bg-error-container text-on-error-container text-label-md
+                    px-gutter py-xs flex items-center gap-xs">
+          <span class="material-symbols-outlined text-[14px] icon-fill">cancel</span>
+          This event has been cancelled
+        </div>` : ''}
+
+      <div class="p-gutter flex flex-col gap-md cursor-pointer select-none"
+           onclick="navigate('detail','${ev.id}')">
+
+        <!-- Header row -->
+        <div class="flex gap-gutter items-start">
+          <div class="flex items-center justify-center rounded-full shrink-0 w-12 h-12
+                      ${ev.cancelled ? 'bg-surface-container text-on-surface-variant' : 'bg-secondary-container text-on-secondary-container'}">
+            <span class="material-symbols-outlined text-[28px]">${CAT_ICON[ev.category]}</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h3 class="text-headline-md text-on-surface leading-tight">${esc(ev.title)}</h3>
+            <p class="text-body-md text-on-surface-variant mt-xs truncate">${esc(ev.location)}</p>
+            <p class="text-body-md text-on-surface-variant">
+              Host: ${esc(ev.host)} · ${fmtDateTime(ev.dateTime)}
+            </p>
+          </div>
+        </div>
+
+        <!-- Capacity -->
+        <div class="flex flex-col gap-base bg-surface-container-low p-sm rounded-md border border-surface-variant/50">
+          <div class="flex justify-between items-center">
+            <span class="text-label-md text-on-surface-variant uppercase tracking-wide">
+              ${ev.attendees.length}/${ev.cap} spots filled
+            </span>
+            <span class="text-label-md ${st.labelCls} font-bold">${st.label}</span>
+          </div>
+          <div class="h-2 w-full rounded-full bg-surface-variant overflow-hidden">
+            <div class="h-full rounded-full progress-fill ${st.barCls}" style="width:${st.pct}%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="px-gutter pb-gutter flex gap-base">
+        ${actionBtn}
+        ${manageBtn}
+      </div>
+    </article>`;
+}
+
+// ─── Create view ──────────────────────────────────────────────────────────────
+function renderCreate() {
+  const now = new Date();
+  const def = new Date(now); def.setDate(def.getDate() + 1); def.setHours(18, 0, 0, 0);
+
+  const inputCls = `w-full h-14 px-sm rounded-md border border-outline bg-surface text-on-surface
+                    text-body-md focus:border-primary focus:ring-1 focus:ring-primary
+                    outline-none transition-all placeholder:text-on-surface-variant/50`;
+
+  return `
+    ${hdrBack('Create Event', "navigate('board')")}
+
+    <main class="flex-1 px-container-margin py-md pb-xl">
+      <form id="create-form" class="flex flex-col gap-md max-w-[600px]"
+            onsubmit="submitCreate(event)">
+
+        <label class="flex flex-col gap-xs">
+          <span class="text-label-lg text-on-surface">Event Title *</span>
+          <input name="title" type="text" required maxlength="80"
+            placeholder="What are we doing?"
+            class="${inputCls}" />
+        </label>
+
+        <label class="flex flex-col gap-xs">
+          <span class="text-label-lg text-on-surface">Category *</span>
+          <select name="category" required
+            class="${inputCls} appearance-none">
+            <option value="sports">⚽ Sports</option>
+            <option value="food">🍜 Food &amp; Drinks</option>
+          </select>
+        </label>
+
+        <label class="flex flex-col gap-xs">
+          <span class="text-label-lg text-on-surface">Date &amp; Time *</span>
+          <input name="dateTime" type="datetime-local" required
+            value="${toLocalDtInput(def.toISOString())}"
+            min="${minDtInput()}"
+            class="${inputCls}" />
+        </label>
+
+        <label class="flex flex-col gap-xs">
+          <span class="text-label-lg text-on-surface">Location *</span>
+          <input name="location" type="text" required maxlength="100"
+            placeholder="Where is it happening?"
+            class="${inputCls}" />
+        </label>
+
+        <label class="flex flex-col gap-xs">
+          <span class="text-label-lg text-on-surface">Max Headcount *</span>
+          <input name="cap" type="number" required min="2" max="100"
+            placeholder="e.g. 10"
+            class="${inputCls}" />
+        </label>
+
+        <label class="flex flex-col gap-xs">
+          <span class="text-label-lg text-on-surface">
+            Description
+            <span class="text-body-md text-on-surface-variant font-normal">(Optional)</span>
+          </span>
+          <textarea name="description" rows="3" maxlength="500"
+            placeholder="Any additional details or instructions?"
+            class="px-sm py-sm rounded-md border border-outline bg-surface text-on-surface
+                   text-body-md focus:border-primary focus:ring-1 focus:ring-primary
+                   outline-none transition-all resize-y min-h-[96px]
+                   placeholder:text-on-surface-variant/50"></textarea>
+        </label>
+
+        <div class="flex gap-sm pt-sm">
+          <button type="button" onclick="navigate('board')"
+            class="flex-1 h-12 rounded-full border border-secondary text-secondary
+                   text-label-lg hover:bg-surface-container transition-colors">
+            Cancel
+          </button>
+          <button type="submit"
+            class="flex-1 h-12 rounded-full bg-primary text-on-primary
+                   text-label-lg hover:bg-surface-tint transition-colors shadow-sm">
+            Create Event
+          </button>
+        </div>
+      </form>
+    </main>`;
+}
+
+function submitCreate(e) {
+  e.preventDefault();
+  const fd = new FormData(document.getElementById('create-form'));
+  actionCreate(Object.fromEntries(fd.entries()));
+}
+
+// ─── Detail view ──────────────────────────────────────────────────────────────
+function renderDetail() {
+  const ev = getEvent(state.selectedId);
+  if (!ev) return `<div class="p-md text-body-md text-on-surface-variant">Event not found.</div>`;
+
+  const st = capacityStatus(ev);
+  const full = isFull(ev);
+  const joined = isJoined(ev);
+  const canManage = sessionEventIds.has(ev.id) && !ev.cancelled;
+
+  // Action panel
+  let actionPanel = '';
+  if (ev.cancelled) {
+    actionPanel = `
+      <section class="bg-error-container border border-error rounded-xl p-md flex items-start gap-sm">
+        <span class="material-symbols-outlined text-[24px] text-error icon-fill mt-xs shrink-0">cancel</span>
+        <div>
+          <p class="text-label-lg font-bold text-on-error-container">Event Cancelled</p>
+          <p class="text-body-md text-on-error-container/80">This event was cancelled by the host.</p>
+        </div>
+      </section>`;
+  } else if (joined) {
+    actionPanel = `
+      <section class="bg-secondary-container border border-secondary-fixed-dim rounded-xl p-md
+                      flex flex-col gap-sm relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-secondary"></div>
+        <div class="flex items-center gap-sm">
+          <span class="material-symbols-outlined text-[22px] text-secondary icon-fill">check_circle</span>
+          <h3 class="text-headline-sm text-on-secondary-container">You're going!</h3>
+        </div>
+        <p class="text-body-md text-on-secondary-container/80">
+          You're on the list. We'll see you there!
+        </p>
+        <button onclick="actionJoin('${ev.id}')"
+          class="w-full h-12 rounded-full border-2 border-secondary text-secondary
+                 text-label-lg hover:bg-surface-container transition-colors">
+          Leave Event
+        </button>
+      </section>`;
+  } else if (full) {
+    actionPanel = `
+      <section class="bg-surface-container border border-surface-variant rounded-xl p-md flex items-center gap-sm">
+        <span class="material-symbols-outlined text-[24px] text-on-surface-variant">group_off</span>
+        <div>
+          <p class="text-label-lg font-bold text-on-surface">Event is Full</p>
+          <p class="text-body-md text-on-surface-variant">All spots have been taken.</p>
+        </div>
+      </section>`;
+  } else {
+    actionPanel = `
+      <section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md
+                      shadow-card flex flex-col gap-sm relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-primary"></div>
+        <h3 class="text-headline-sm text-primary">Join this event</h3>
+        <p class="text-body-md text-on-surface-variant">
+          No account needed — just let us know who's coming to reserve your spot!
+        </p>
+        <button onclick="actionJoin('${ev.id}')"
+          class="w-full h-12 bg-primary-container text-on-primary text-label-lg rounded-full
+                 hover:bg-primary transition-colors flex items-center justify-center gap-xs
+                 shadow-sm active:scale-[0.98]">
+          <span class="material-symbols-outlined text-[20px]">check_circle</span>
+          Confirm &amp; Join
+        </button>
+        <div class="flex justify-center">
+          <span class="bg-surface-container-low text-on-surface-variant px-sm py-xs rounded-md
+                       text-label-md flex items-center gap-xs">
+            <span class="material-symbols-outlined text-[14px]">info</span>
+            Your name is only saved for this session.
+          </span>
+        </div>
+      </section>`;
+  }
+
+  // Attendees
+  const attendeeItems = ev.attendees.map((name, i) => {
+    const color = AVATAR_COLORS[i % AVATAR_COLORS.length];
+    const isHost = name === ev.host;
+    return `
+      <li class="flex items-center gap-sm p-sm bg-surface-container-lowest border border-surface-variant rounded-md">
+        <div class="w-10 h-10 rounded-full ${color} flex items-center justify-center
+                    text-headline-sm shrink-0 font-bold select-none">
+          ${esc(name.charAt(0).toUpperCase())}
+        </div>
+        <span class="text-body-md text-on-surface flex-1">${esc(name)}</span>
+        ${isHost ? `<span class="bg-surface-container px-2 py-[3px] rounded text-[10px] font-bold
+                                text-on-surface-variant uppercase tracking-wider">Host</span>` : ''}
+      </li>`;
+  }).join('');
+
+  return `
+    <header class="sticky top-0 z-10 bg-surface/95 backdrop-blur-md border-b border-surface-variant
+                   px-container-margin py-sm flex items-center gap-sm">
+      <button onclick="navigate('board')"
+        class="w-12 h-12 flex items-center justify-center rounded-full
+               hover:bg-surface-container transition-colors -ml-2 shrink-0">
+        <span class="material-symbols-outlined text-[24px] text-on-surface">arrow_back</span>
+      </button>
+      <h1 class="text-headline-sm text-on-surface flex-1 truncate">${esc(ev.title)}</h1>
+      ${canManage ? `
+        <button onclick="navigate('manage','${ev.id}')"
+          class="w-12 h-12 flex items-center justify-center rounded-full
+                 hover:bg-surface-container transition-colors text-on-surface-variant shrink-0">
+          <span class="material-symbols-outlined text-[22px]">settings</span>
+        </button>` : ''}
+    </header>
+
+    <main class="flex flex-col gap-md px-container-margin pt-md pb-xl max-w-[800px] mx-auto w-full">
+
+      <!-- Event identity -->
+      <section class="flex flex-col gap-sm">
+        <div class="flex items-center gap-sm">
+          <div class="flex items-center justify-center rounded-full
+                      ${ev.cancelled ? 'bg-surface-container text-on-surface-variant' : 'bg-secondary-container text-on-secondary-container'}
+                      w-14 h-14 shrink-0">
+            <span class="material-symbols-outlined text-[32px]">${CAT_ICON[ev.category]}</span>
+          </div>
+          <div>
+            <h2 class="text-headline-lg text-on-surface leading-tight">${esc(ev.title)}</h2>
+            <span class="inline-flex items-center gap-xs bg-secondary-container text-on-secondary-container
+                         px-sm py-xs rounded-full text-label-md mt-xs">
+              ${ev.category === 'sports' ? '⚽' : '🍜'} ${CAT_LABEL[ev.category]}
+            </span>
+          </div>
+        </div>
+        <div class="flex flex-col gap-xs mt-xs">
+          <div class="flex items-center gap-base text-on-surface-variant">
+            <span class="material-symbols-outlined text-[20px] shrink-0">person</span>
+            <span class="text-label-lg">Hosted by ${esc(ev.host)}</span>
+          </div>
+          <div class="flex items-center gap-base text-on-surface-variant">
+            <span class="material-symbols-outlined text-[20px] shrink-0">calendar_today</span>
+            <span class="text-body-md">${fmtDateTimeLong(ev.dateTime)}</span>
+          </div>
+          <div class="flex items-center gap-base text-on-surface-variant">
+            <span class="material-symbols-outlined text-[20px] shrink-0">location_on</span>
+            <span class="text-body-md">${esc(ev.location)}</span>
+          </div>
+        </div>
+      </section>
+
+      ${actionPanel}
+
+      ${ev.description ? `
+        <section class="pt-xs">
+          <h3 class="text-headline-sm text-on-surface mb-sm">About this event</h3>
+          <p class="text-body-md text-on-surface-variant leading-relaxed">${esc(ev.description)}</p>
+        </section>` : ''}
+
+      <!-- Attendees -->
+      <section class="pt-sm border-t border-surface-variant">
+        <div class="flex items-center justify-between mb-sm">
+          <h3 class="text-headline-sm text-on-surface">Attendees</h3>
+          <span class="text-label-lg text-on-surface-variant">${ev.attendees.length} / ${ev.cap}</span>
+        </div>
+        <div class="h-2 w-full bg-surface-container-high rounded-full overflow-hidden mb-md">
+          <div class="h-full ${st.barCls} rounded-full progress-fill" style="width:${st.pct}%"></div>
+        </div>
+        ${ev.attendees.length
+          ? `<ul class="flex flex-col gap-base">${attendeeItems}</ul>`
+          : `<p class="text-body-md text-on-surface-variant/50 text-center py-md">No one has joined yet — be first!</p>`
+        }
+      </section>
+
+      ${canManage ? `
+        <section class="border-t border-surface-variant pt-sm">
+          <button onclick="navigate('manage','${ev.id}')"
+            class="w-full h-12 rounded-md border border-outline text-on-surface text-label-lg
+                   flex items-center justify-center gap-xs hover:bg-surface-container transition-colors">
+            <span class="material-symbols-outlined text-[20px]">settings</span>
+            Manage Event
+          </button>
+        </section>` : ''}
+    </main>`;
+}
+
+// ─── Manage view ──────────────────────────────────────────────────────────────
+function renderManage() {
+  const ev = getEvent(state.selectedId);
+  if (!ev) return `<div class="p-md text-body-md text-on-surface-variant">Event not found.</div>`;
+
+  const inputCls = `w-full h-14 px-sm rounded-md border border-outline bg-surface text-on-surface
+                    text-body-md focus:border-primary focus:ring-1 focus:ring-primary
+                    outline-none transition-all`;
+
+  const editForm = `
+    <form id="edit-form" class="flex flex-col gap-md" onsubmit="submitEdit(event)">
+      <label class="flex flex-col gap-xs">
+        <span class="text-label-lg text-on-surface">Event Title *</span>
+        <input name="title" type="text" required maxlength="80"
+          value="${esc(ev.title)}" class="${inputCls}" />
+      </label>
+      <label class="flex flex-col gap-xs">
+        <span class="text-label-lg text-on-surface">Category *</span>
+        <select name="category" required class="${inputCls} appearance-none">
+          <option value="sports" ${ev.category==='sports'?'selected':''}>⚽ Sports</option>
+          <option value="food"   ${ev.category==='food'  ?'selected':''}>🍜 Food &amp; Drinks</option>
+        </select>
+      </label>
+      <label class="flex flex-col gap-xs">
+        <span class="text-label-lg text-on-surface">Date &amp; Time *</span>
+        <input name="dateTime" type="datetime-local" required
+          value="${toLocalDtInput(ev.dateTime)}"
+          min="${minDtInput()}"
+          class="${inputCls}" />
+      </label>
+      <label class="flex flex-col gap-xs">
+        <span class="text-label-lg text-on-surface">Location *</span>
+        <input name="location" type="text" required maxlength="100"
+          value="${esc(ev.location)}" class="${inputCls}" />
+      </label>
+      <label class="flex flex-col gap-xs">
+        <span class="text-label-lg text-on-surface">Max Headcount *</span>
+        <input name="cap" type="number" required
+          min="${ev.attendees.length}" max="100"
+          value="${ev.cap}" class="${inputCls}" />
+        <span class="text-label-md text-on-surface-variant">
+          Minimum ${ev.attendees.length} (current attendee count)
+        </span>
+      </label>
+      <label class="flex flex-col gap-xs">
+        <span class="text-label-lg text-on-surface">
+          Description
+          <span class="text-body-md text-on-surface-variant font-normal">(Optional)</span>
+        </span>
+        <textarea name="description" rows="3" maxlength="500"
+          class="px-sm py-sm rounded-md border border-outline bg-surface text-on-surface
+                 text-body-md focus:border-primary focus:ring-1 focus:ring-primary
+                 outline-none transition-all resize-y min-h-[96px]">${esc(ev.description)}</textarea>
+      </label>
+      <div class="flex gap-sm">
+        <button type="button" onclick="state.editing=false; render()"
+          class="flex-1 h-12 rounded-full border border-outline text-on-surface
+                 text-label-lg hover:bg-surface-container transition-colors">
+          Discard
+        </button>
+        <button type="submit"
+          class="flex-1 h-12 rounded-full bg-primary text-on-primary
+                 text-label-lg hover:bg-surface-tint transition-colors shadow-sm">
+          Save Changes
+        </button>
+      </div>
+    </form>`;
+
+  const pct = Math.round(ev.attendees.length / ev.cap * 100);
+  const readView = `
+    <div class="bg-surface-container-lowest rounded-xl border border-surface-variant p-md
+                shadow-card ${ev.cancelled ? 'opacity-60' : ''}">
+      <div class="flex items-start gap-md mb-md">
+        <div class="w-12 h-12 rounded-full shrink-0 flex items-center justify-center text-[24px]
+                    ${ev.cancelled ? 'bg-surface-container text-on-surface-variant' : 'bg-secondary-container text-on-secondary-container'}">
+          ${ev.category==='sports' ? '⚽' : '🍜'}
+        </div>
+        <div class="flex-1 min-w-0">
+          <span class="inline-flex bg-secondary-container text-on-secondary-container
+                       px-sm py-xs rounded-full text-label-md mb-xs">${CAT_LABEL[ev.category]}</span>
+          <h3 class="text-headline-md text-on-surface">${esc(ev.title)}</h3>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-md py-md border-t border-surface-variant">
+        <div>
+          <p class="text-label-lg text-on-surface-variant mb-xs">Host</p>
+          <p class="text-body-md text-on-surface flex items-center gap-xs">
+            <span class="material-symbols-outlined text-[18px] shrink-0">person</span>${esc(ev.host)}
+          </p>
+        </div>
+        <div>
+          <p class="text-label-lg text-on-surface-variant mb-xs">Date &amp; Time</p>
+          <p class="text-body-md text-on-surface flex items-center gap-xs">
+            <span class="material-symbols-outlined text-[18px] shrink-0">schedule</span>${fmtDateTimeLong(ev.dateTime)}
+          </p>
+        </div>
+        <div>
+          <p class="text-label-lg text-on-surface-variant mb-xs">Location</p>
+          <p class="text-body-md text-on-surface flex items-center gap-xs">
+            <span class="material-symbols-outlined text-[18px] shrink-0">location_on</span>${esc(ev.location)}
+          </p>
+        </div>
+        <div>
+          <p class="text-label-lg text-on-surface-variant mb-xs">Spots</p>
+          <p class="text-body-md text-on-surface flex items-center gap-xs">
+            <span class="material-symbols-outlined text-[18px] shrink-0">group</span>
+            ${ev.attendees.length} / ${ev.cap}
+          </p>
+          <div class="w-full h-2 bg-surface-variant rounded-full mt-sm overflow-hidden">
+            <div class="h-full bg-secondary rounded-full progress-fill" style="width:${pct}%"></div>
+          </div>
+        </div>
+      </div>
+
+      ${ev.description ? `
+        <div class="pt-md border-t border-surface-variant">
+          <p class="text-label-lg text-on-surface-variant mb-xs">Description</p>
+          <p class="text-body-md text-on-surface">${esc(ev.description)}</p>
+        </div>` : ''}
+    </div>
+
+    ${!ev.cancelled ? `
+      <div class="flex flex-col gap-base">
+        <button onclick="state.editing=true; render()"
+          class="w-full min-h-[48px] bg-primary text-on-primary rounded-md text-label-lg
+                 flex items-center justify-center gap-xs hover:bg-surface-tint transition-colors">
+          <span class="material-symbols-outlined text-[20px]">edit</span>
+          Edit Details
+        </button>
+        <button onclick="actionCancel('${ev.id}')"
+          class="w-full min-h-[48px] border-2 border-error text-error rounded-md text-label-lg
+                 flex items-center justify-center gap-xs hover:bg-error-container transition-colors">
+          <span class="material-symbols-outlined text-[20px]">cancel</span>
+          Cancel Event
+        </button>
+      </div>` : ''}`;
+
+  return `
+    ${hdrBack(state.editing ? 'Edit Event' : 'Manage Event', `navigate('detail','${ev.id}')`)}
+
+    ${ev.cancelled ? `
+      <div class="px-container-margin pt-md">
+        <div class="bg-error-container text-on-error-container p-md rounded-xl
+                    flex flex-col items-center gap-base border border-error text-center">
+          <span class="material-symbols-outlined text-[48px] icon-fill text-error">cancel</span>
+          <h2 class="text-headline-md text-on-error-container">Event Cancelled</h2>
+          <p class="text-body-md text-on-error-container/80">
+            This event has been cancelled. Details remain for reference.
+          </p>
+        </div>
+      </div>` : ''}
+
+    <main class="max-w-[600px] mx-auto px-container-margin py-md pb-xl flex flex-col gap-lg w-full">
+      ${state.editing ? editForm : readView}
+    </main>`;
+}
+
+function submitEdit(e) {
+  e.preventDefault();
+  const fd = new FormData(document.getElementById('edit-form'));
+  actionEdit(state.selectedId, Object.fromEntries(fd.entries()));
+}
+
+// ─── Global helpers exposed to inline handlers ────────────────────────────────
+function setFilter(f) { state.filter = f; render(); }
+
+// ─── Main render ─────────────────────────────────────────────────────────────
+function render() {
+  const app = document.getElementById('app');
+  switch (state.view) {
+    case 'board':  app.innerHTML = renderBoard();  break;
+    case 'create': app.innerHTML = renderCreate(); break;
+    case 'detail': app.innerHTML = renderDetail(); break;
+    case 'manage': app.innerHTML = renderManage(); break;
+    default:       app.innerHTML = renderBoard();
+  }
+}
+
+// ─── Boot ────────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
