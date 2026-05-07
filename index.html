@@ -201,11 +201,31 @@
   </div>
 
 <!-- ═══════════════════════════════════════════════════════════════════ -->
-<script>
+<script type="module">
 'use strict';
 
+// ─── Firebase ────────────────────────────────────────────────────────────────
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js';
+import {
+  getFirestore, collection, doc,
+  onSnapshot, addDoc, updateDoc,
+  arrayUnion, arrayRemove, getDocs,
+} from 'https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey:            'AIzaSyCnGDljLf5h_ghzrJnDJswJ4ddd1UEvt4Y',
+  authDomain:        'tawagather.firebaseapp.com',
+  projectId:         'tawagather',
+  storageBucket:     'tawagather.firebasestorage.app',
+  messagingSenderId: '321737955720',
+  appId:             '1:321737955720:web:962104158a01beeabc423d',
+};
+
+const fbApp    = initializeApp(firebaseConfig);
+const db       = getFirestore(fbApp);
+const eventsCol = collection(db, 'events');
+
 // ─── Constants ──────────────────────────────────────────────────────────────
-const STORAGE_KEY = '99ranch_events_v1';
 
 const CAT_ICON = { sports: 'sports_soccer', food: 'rice_bowl' };
 const CAT_LABEL = { sports: 'Sports', food: 'Food & Drinks' };
@@ -216,26 +236,40 @@ let sessionEventIds = new Set(); // event IDs the user joined/hosted this sessio
 
 // ─── App state ───────────────────────────────────────────────────────────────
 const state = {
-  view: 'board',           // 'board' | 'create' | 'detail' | 'manage'
-  filter: 'all',           // 'all' | 'sports' | 'food'
-  selectedId: null,        // id of selected event
-  editing: false,          // whether manage view is in edit mode
+  view: 'loading',         // 'loading' | 'board' | 'create' | 'detail' | 'manage'
+  filter: 'all',
+  selectedId: null,
+  editing: false,
 };
 
-// ─── Events (localStorage) ───────────────────────────────────────────────────
-let events = loadEvents();
+// ─── Events (Firestore) ──────────────────────────────────────────────────────
+let events = [];
+let _seeded = false;
 
-function loadEvents() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch (_) {}
-  return makeSampleEvents();
+// Seed sample data only when the collection is empty on first load
+async function seedIfEmpty() {
+  const snap = await getDocs(eventsCol);
+  if (!snap.empty) return;
+  _seeded = true;
+  const samples = makeSampleEvents();
+  for (const ev of samples) {
+    const { id, ...data } = ev;          // Firestore auto-assigns the doc ID
+    await addDoc(eventsCol, data);
+  }
 }
 
-function saveEvents() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(events)); } catch (_) {}
-}
+// Real-time listener — updates events[] and re-renders on every change
+onSnapshot(eventsCol, snap => {
+  events = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (state.view === 'loading') state.view = 'board';
+  render();
+}, err => {
+  console.error('Firestore error', err);
+  toast('Connection error — please refresh.');
+});
+
+// Kick off seed check (runs once, won't duplicate if already seeded)
+seedIfEmpty();
 
 function makeSampleEvents() {
   const now = new Date();
@@ -303,9 +337,6 @@ function makeSampleEvents() {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-function uid() {
-  return 'evt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
-}
 
 function esc(str) {
   const d = document.createElement('div');
@@ -453,21 +484,18 @@ document.getElementById('confirm-backdrop').addEventListener('click', () => {
   _cancelCallback = null;
 });
 
-// ─── Actions ─────────────────────────────────────────────────────────────────
+// ─── Actions (all writes go straight to Firestore) ───────────────────────────
 function actionJoin(id) {
   const ev = getEvent(id);
   if (!ev || ev.cancelled) return;
 
   if (isJoined(ev)) {
-    // Unjoin — hosts can leave too (event still exists)
+    // Unjoin
     if (sessionName) {
-      const idx = ev.attendees.indexOf(sessionName);
-      if (idx > -1) ev.attendees.splice(idx, 1);
+      updateDoc(doc(db, 'events', id), { attendees: arrayRemove(sessionName) });
     }
     sessionEventIds.delete(id);
-    saveEvents();
     toast("You've left the event");
-    render();
     return;
   }
 
@@ -477,18 +505,15 @@ function actionJoin(id) {
     "What's your name?",
     "Just so others know who's coming — no account needed.",
     name => {
-      // Duplicate guard (case-insensitive)
       if (ev.attendees.some(a => a.toLowerCase() === name.toLowerCase())) {
         sessionEventIds.add(id);
         toast("You're already on the list!");
         render(); return;
       }
-      if (isFull(ev)) { toast("Sorry, this event just filled up!"); render(); return; }
-      ev.attendees.push(name);
+      if (isFull(ev)) { toast("Sorry, this event just filled up!"); return; }
+      updateDoc(doc(db, 'events', id), { attendees: arrayUnion(name) });
       sessionEventIds.add(id);
-      saveEvents();
       toast("You're in! 🎉");
-      render();
     }
   );
 }
@@ -497,9 +522,8 @@ function actionCreate(fd) {
   promptName(
     "Who's organizing this?",
     "Your name will appear as the event host.",
-    name => {
-      const ev = {
-        id:          uid(),
+    async name => {
+      const data = {
         title:       fd.title.trim(),
         category:    fd.category,
         dateTime:    new Date(fd.dateTime).toISOString(),
@@ -511,9 +535,8 @@ function actionCreate(fd) {
         cancelled:   false,
         createdAt:   new Date().toISOString(),
       };
-      events.push(ev);
-      sessionEventIds.add(ev.id);
-      saveEvents();
+      const ref = await addDoc(eventsCol, data);
+      sessionEventIds.add(ref.id);
       toast('Event created! 🎉');
       navigate('board');
     }
@@ -524,7 +547,7 @@ function actionEdit(id, fd) {
   const ev = getEvent(id);
   if (!ev) return;
   const newCap = Math.max(ev.attendees.length, parseInt(fd.cap, 10));
-  Object.assign(ev, {
+  updateDoc(doc(db, 'events', id), {
     title:       fd.title.trim(),
     category:    fd.category,
     dateTime:    new Date(fd.dateTime).toISOString(),
@@ -532,7 +555,6 @@ function actionEdit(id, fd) {
     cap:         newCap,
     description: (fd.description || '').trim(),
   });
-  saveEvents();
   toast('Event updated');
   state.editing = false;
   render();
@@ -540,10 +562,7 @@ function actionEdit(id, fd) {
 
 function actionCancel(id) {
   confirmCancel(() => {
-    const ev = getEvent(id);
-    if (!ev) return;
-    ev.cancelled = true;
-    saveEvents();
+    updateDoc(doc(db, 'events', id), { cancelled: true });
     toast('Event cancelled');
     render();
   });
@@ -1160,17 +1179,37 @@ function submitEdit(e) {
 // ─── Global helpers exposed to inline handlers ────────────────────────────────
 function setFilter(f) { state.filter = f; render(); }
 
+// ─── Loading view ─────────────────────────────────────────────────────────────
+function renderLoading() {
+  return `
+    <div class="flex-1 flex flex-col items-center justify-center gap-md py-xl">
+      <div class="w-12 h-12 rounded-full border-4 border-surface-container-high border-t-primary animate-spin"></div>
+      <p class="text-body-md text-on-surface-variant">Loading events…</p>
+    </div>`;
+}
+
 // ─── Main render ─────────────────────────────────────────────────────────────
 function render() {
   const app = document.getElementById('app');
   switch (state.view) {
-    case 'board':  app.innerHTML = renderBoard();  break;
-    case 'create': app.innerHTML = renderCreate(); break;
-    case 'detail': app.innerHTML = renderDetail(); break;
-    case 'manage': app.innerHTML = renderManage(); break;
-    default:       app.innerHTML = renderBoard();
+    case 'loading': app.innerHTML = renderLoading(); break;
+    case 'board':   app.innerHTML = renderBoard();   break;
+    case 'create':  app.innerHTML = renderCreate();  break;
+    case 'detail':  app.innerHTML = renderDetail();  break;
+    case 'manage':  app.innerHTML = renderManage();  break;
+    default:        app.innerHTML = renderBoard();
   }
 }
+
+// ─── Expose to inline onclick handlers (ES module scope is isolated) ──────────
+window.navigate     = navigate;
+window.setFilter    = setFilter;
+window.actionJoin   = actionJoin;
+window.actionCancel = actionCancel;
+window.submitCreate = submitCreate;
+window.submitEdit   = submitEdit;
+window.state        = state;
+window.render       = render;
 
 // ─── Boot ────────────────────────────────────────────────────────────────────
 render();
