@@ -627,19 +627,10 @@ function renderBoard() {
        </div>`;
 
   return `
-    <header class="sticky top-0 z-10 flex items-center justify-between whitespace-nowrap
+    <header class="sticky top-0 z-10 flex items-center justify-between
                    border-b border-surface-variant px-container-margin py-3
                    bg-surface/95 backdrop-blur-md">
-      <div class="flex items-center gap-3 text-on-surface">
-        <div class="w-5 h-5 text-primary-container shrink-0">
-          <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" fill="currentColor"/>
-          </svg>
-        </div>
-        <h1 class="text-on-surface font-semibold text-[18px] leading-tight tracking-[-0.015em]">
-          99 Ranch Events
-        </h1>
-      </div>
+      <img src="logo.png" alt="Tawagather" class="h-9 w-auto" />
       <button onclick="navigate('create')"
         class="flex items-center justify-center rounded-md h-12 px-gutter
                bg-primary-container text-on-primary text-label-lg
@@ -656,7 +647,16 @@ function renderBoard() {
 
     <main class="flex flex-col gap-md px-container-margin py-md pb-xl">
       ${cards}
-    </main>`;
+    </main>
+
+    <footer class="border-t border-surface-variant px-container-margin py-md flex flex-col sm:flex-row items-center justify-between gap-sm text-label-md text-on-surface-variant">
+      <span>Made by <span class="font-semibold text-on-surface">Gary Li</span></span>
+      <a href="mailto:garyl@tawa.com"
+         class="flex items-center gap-xs hover:text-primary transition-colors">
+        <span class="material-symbols-outlined text-[16px]">mail</span>
+        garyl@tawa.com
+      </a>
+    </footer>`;
 }
 
 function renderCard(ev) {
