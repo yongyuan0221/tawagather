@@ -357,8 +357,17 @@ function isJoined(ev) { return sessionEventIds.has(ev.id); }
 function getEvent(id) { return events.find(e => e.id === id) ?? null; }
 
 function filteredSorted() {
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
   return events
-    .filter(e => state.filter === 'all' || e.category === state.filter)
+    .filter(e => {
+      if (state.filter !== 'all' && e.category !== state.filter) return false;
+      // Hide any event (active or cancelled) once its calendar day is in the past
+      const evDay = new Date(e.dateTime);
+      evDay.setHours(0, 0, 0, 0);
+      return evDay >= todayStart;
+    })
     .sort((a, b) => {
       if (a.cancelled !== b.cancelled) return a.cancelled ? 1 : -1;
       return new Date(a.dateTime) - new Date(b.dateTime);
