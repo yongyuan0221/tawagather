@@ -491,9 +491,9 @@ function actionJoin(id) {
   if (!ev || ev.cancelled) return;
 
   if (isJoined(ev)) {
-    // Unjoin
     if (sessionName) {
-      updateDoc(doc(db, 'events', id), { attendees: arrayRemove(sessionName) });
+      updateDoc(doc(db, 'events', id), { attendees: arrayRemove(sessionName) })
+        .catch(() => toast('Could not leave — check your connection.'));
     }
     sessionEventIds.delete(id);
     toast("You've left the event");
@@ -512,7 +512,8 @@ function actionJoin(id) {
         render(); return;
       }
       if (isFull(ev)) { toast("Sorry, this event just filled up!"); return; }
-      updateDoc(doc(db, 'events', id), { attendees: arrayUnion(name) });
+      updateDoc(doc(db, 'events', id), { attendees: arrayUnion(name) })
+        .catch(() => toast('Could not join — check your connection.'));
       sessionEventIds.add(id);
       toast("You're in! 🎉");
     }
@@ -524,7 +525,6 @@ function actionCreate(fd) {
     "Who's organizing this?",
     "Your name will appear as the event host.",
     async name => {
-      // Navigate first so onSnapshot's mid-write render hits 'board', not 'create'
       navigate('board');
       const data = {
         title:       fd.title.trim(),
@@ -538,11 +538,14 @@ function actionCreate(fd) {
         cancelled:   false,
         createdAt:   new Date().toISOString(),
       };
-      const ref = await addDoc(eventsCol, data);
-      // Mark joined before re-rendering so the card shows "Joined – Leave" immediately
-      sessionEventIds.add(ref.id);
-      toast('Event created! 🎉');
-      render();
+      try {
+        const ref = await addDoc(eventsCol, data);
+        sessionEventIds.add(ref.id);
+        toast('Event created! 🎉');
+        render();
+      } catch {
+        toast('Could not create event — check your connection.');
+      }
     }
   );
 }
@@ -558,7 +561,7 @@ function actionEdit(id, fd) {
     location:    fd.location.trim(),
     cap:         newCap,
     description: (fd.description || '').trim(),
-  });
+  }).catch(() => toast('Could not save changes — check your connection.'));
   toast('Event updated');
   state.editing = false;
   render();
@@ -566,7 +569,8 @@ function actionEdit(id, fd) {
 
 function actionCancel(id) {
   confirmCancel(() => {
-    updateDoc(doc(db, 'events', id), { cancelled: true });
+    updateDoc(doc(db, 'events', id), { cancelled: true })
+      .catch(() => toast('Could not cancel event — check your connection.'));
     toast('Event cancelled');
     render();
   });
@@ -1214,6 +1218,11 @@ window.submitCreate = submitCreate;
 window.submitEdit   = submitEdit;
 window.state        = state;
 window.render       = render;
+
+// ─── Re-render when tab becomes visible (mobile background suspension) ───────
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') render();
+});
 
 // ─── Boot ────────────────────────────────────────────────────────────────────
 render();
