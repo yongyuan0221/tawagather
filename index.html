@@ -256,10 +256,24 @@ const CAT_LABEL = { sports: 'Sports', food: 'Food & Drinks' };
 // ─── Session state ───────────────────────────────────────────────────────────
 let sessionName = null;   // identity claimed for the current event view; cleared on board/create nav
 
-// ─── Registered users (from Firestore) ───────────────────────────────────────
+// ─── Registered users (merged from users collection + event participants) ────
 let allUsers = [];
+let _firestoreUsers = [];
+let _eventParticipants = [];
+
+function _rebuildAllUsers() {
+  const seen = new Set();
+  const merged = [];
+  for (const name of [..._firestoreUsers, ..._eventParticipants]) {
+    const key = name.toLowerCase();
+    if (!seen.has(key)) { seen.add(key); merged.push(name); }
+  }
+  allUsers = merged.sort((a, b) => a.localeCompare(b));
+}
+
 onSnapshot(usersCol, snap => {
-  allUsers = snap.docs.map(d => d.data().name).sort((a, b) => a.localeCompare(b));
+  _firestoreUsers = snap.docs.map(d => d.data().name);
+  _rebuildAllUsers();
 }, err => console.error('Users listener error', err));
 
 // ─── App state ───────────────────────────────────────────────────────────────
@@ -282,6 +296,13 @@ async function seedEvents() {
 onSnapshot(eventsCol, async snap => {
   if (!_seeded && snap.empty) { await seedEvents(); return; }
   events = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const participants = new Set();
+  events.forEach(ev => {
+    ev.attendees?.forEach(a => participants.add(a));
+    if (ev.host) participants.add(ev.host);
+  });
+  _eventParticipants = [...participants];
+  _rebuildAllUsers();
   if (state.view === 'loading') state.view = 'board';
   render();
 }, err => {
@@ -588,8 +609,10 @@ document.getElementById('confirm-backdrop').addEventListener('click', () => {
 
 // Register a new name in the users collection if not already there
 function registerName(name) {
-  if (!allUsers.includes(name)) {
-    addDoc(usersCol, { name, createdAt: new Date().toISOString() }).catch(() => {});
+  const exists = allUsers.some(u => u.toLowerCase() === name.toLowerCase());
+  if (!exists) {
+    addDoc(usersCol, { name, createdAt: new Date().toISOString() })
+      .catch(() => toast('Could not save name — check your connection.'));
   }
 }
 
