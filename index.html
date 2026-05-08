@@ -139,25 +139,31 @@
   <!-- ── Main app container ─────────────────────────────────────────── -->
   <div id="app" class="mx-auto max-w-[960px] min-h-screen flex flex-col bg-surface shadow-sm relative"></div>
 
-  <!-- ── Name-capture modal ──────────────────────────────────────────── -->
+  <!-- ── Name picker modal (join / create / manage) ─────────────────── -->
   <div id="name-modal" class="hidden fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
     <div id="name-backdrop" class="absolute inset-0 bg-black/40 backdrop-blur-sm fade-in"></div>
     <div class="relative w-full sm:max-w-md mx-auto bg-surface-container-lowest rounded-t-2xl sm:rounded-xl shadow-2xl p-md pb-8 sm:pb-md slide-up">
       <div class="w-10 h-1 bg-surface-variant rounded-full mx-auto mb-md sm:hidden"></div>
-      <h2 class="text-headline-sm text-on-surface mb-xs" id="name-modal-title">What's your name?</h2>
-      <p  class="text-body-md text-on-surface-variant mb-md" id="name-modal-desc">No account needed — just so others know who you are.</p>
+      <h2 class="text-headline-sm text-on-surface mb-xs" id="name-modal-title">Who are you?</h2>
+      <p class="text-body-md text-on-surface-variant mb-md" id="name-modal-desc">Select your name from the list.</p>
       <label class="block mb-sm">
         <span class="text-label-lg text-on-surface block mb-xs">Your name</span>
-        <input id="name-input" type="text" maxlength="40" placeholder="e.g. Maria S."
+        <select id="name-select"
           class="w-full h-12 px-sm rounded-md border border-outline bg-surface text-on-surface text-body-md
-                 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all
-                 placeholder:text-on-surface-variant/50" />
-        <p id="name-error" class="hidden text-label-md text-error mt-xs">Please enter your name to continue.</p>
+                 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all">
+          <option value="">— Select your name —</option>
+        </select>
       </label>
-      <p class="text-label-md text-on-surface-variant flex items-center gap-xs mb-md">
-        <span class="material-symbols-outlined text-[14px]">info</span>
-        Your name is only saved for this session.
-      </p>
+      <div id="new-name-row" class="hidden mb-sm">
+        <label>
+          <span class="text-label-lg text-on-surface block mb-xs">First name + last initial (e.g. Maria S)</span>
+          <input id="new-name-input" type="text" maxlength="40" placeholder="e.g. Maria S"
+            class="w-full h-12 px-sm rounded-md border border-outline bg-surface text-on-surface text-body-md
+                   focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all
+                   placeholder:text-on-surface-variant/50" />
+        </label>
+      </div>
+      <p id="name-error" class="hidden text-label-md text-error mb-sm">Please select your name.</p>
       <div class="flex gap-sm">
         <button id="name-cancel-btn" class="flex-1 h-12 rounded-full border border-outline text-on-surface text-label-lg hover:bg-surface-container transition-colors">
           Cancel
@@ -223,21 +229,29 @@ const firebaseConfig = {
 };
 
 const fbApp = initializeApp(firebaseConfig);
-// persistentLocalCache: serves last-known data from IndexedDB instantly on repeat visits,
-// then patches with server updates in the background
 const db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
 });
 const eventsCol = collection(db, 'events');
+const usersCol  = collection(db, 'users');
+
+// ─── Firestore helpers ───────────────────────────────────────────────────────
+const eventDoc = id => doc(db, 'events', id);
+function writeDoc(p, msg) { return p.catch(() => toast(msg)); }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const CAT_ICON = { sports: 'sports_soccer', food: 'rice_bowl' };
 const CAT_LABEL = { sports: 'Sports', food: 'Food & Drinks' };
 
-// ─── Session state (in-memory only – cleared on tab close) ───────────────────
-let sessionName = null;         // current user's name this session
-let sessionEventIds = new Set(); // event IDs the user joined/hosted this session
+// ─── Session state ───────────────────────────────────────────────────────────
+let sessionName = null;   // identity claimed for the current event view; cleared on board/create nav
+
+// ─── Registered users (from Firestore) ───────────────────────────────────────
+let allUsers = [];
+onSnapshot(usersCol, snap => {
+  allUsers = snap.docs.map(d => d.data().name).sort((a, b) => a.localeCompare(b));
+}, err => console.error('Users listener error', err));
 
 // ─── App state ───────────────────────────────────────────────────────────────
 const state = {
@@ -251,19 +265,13 @@ const state = {
 let events = [];
 let _seeded = false;
 
-// Real-time listener — fires immediately from IndexedDB cache on repeat visits,
-// then patches with server data. Seed sample events if collection is empty.
+async function seedEvents() {
+  _seeded = true;
+  await Promise.all(makeSampleEvents().map(({ id, ...data }) => addDoc(eventsCol, data)));
+}
+
 onSnapshot(eventsCol, async snap => {
-  // First snapshot with empty collection → seed once, then return.
-  // The seed writes will trigger a follow-up snapshot with the new docs.
-  if (!_seeded && snap.empty) {
-    _seeded = true;
-    for (const ev of makeSampleEvents()) {
-      const { id, ...data } = ev;
-      await addDoc(eventsCol, data);
-    }
-    return;
-  }
+  if (!_seeded && snap.empty) { await seedEvents(); return; }
   events = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   if (state.view === 'loading') state.view = 'board';
   render();
@@ -384,7 +392,8 @@ function capacityStatus(ev) {
 }
 
 function isFull(ev)   { return ev.attendees.length >= ev.cap; }
-function isJoined(ev) { return sessionEventIds.has(ev.id); }
+function isJoined(ev) { return !!sessionName && ev.attendees.some(a => a.toLowerCase() === sessionName.toLowerCase()); }
+function isHost(ev)   { return !!sessionName && ev.host === sessionName; }
 
 function getEvent(id) { return events.find(e => e.id === id) ?? null; }
 
@@ -418,6 +427,7 @@ function toast(msg) {
 
 // ─── Navigation ──────────────────────────────────────────────────────────────
 function navigate(view, id = null) {
+  if (view === 'board' || view === 'create') sessionName = null;
   state.view = view;
   state.selectedId = id;
   state.editing = false;
@@ -428,38 +438,88 @@ function navigate(view, id = null) {
 // ─── Name-modal logic ────────────────────────────────────────────────────────
 let _nameCallback = null;
 
-function promptName(title, desc, cb) {
-  if (sessionName) { cb(sessionName); return; }
-  document.getElementById('name-modal-title').textContent = title || "What's your name?";
-  document.getElementById('name-modal-desc').textContent  = desc  || 'Just so others know who you are.';
-  document.getElementById('name-input').value = '';
+function _openNameModal(title, desc, options, allowNew) {
+  document.getElementById('name-modal-title').textContent = title;
+  document.getElementById('name-modal-desc').textContent  = desc;
+  const sel = document.getElementById('name-select');
+  sel.innerHTML = `<option value="">— Select your name —</option>` +
+    options.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('') +
+    (allowNew ? `<option value="__new__">➕ Add new name…</option>` : '');
+  document.getElementById('new-name-row').classList.add('hidden');
+  document.getElementById('new-name-input').value = '';
   document.getElementById('name-error').classList.add('hidden');
   document.getElementById('name-modal').classList.remove('hidden');
-  setTimeout(() => document.getElementById('name-input').focus(), 50);
+  setTimeout(() => sel.focus(), 50);
+}
+
+// Shows all registered users + "add new" option (for join / create)
+function promptName(title, desc, cb) {
+  _openNameModal(title, desc, allUsers, true);
   _nameCallback = cb;
 }
 
+// Shows only the event's attendee list (for claiming existing attendance)
+function promptAttendee(attendees, title, desc, cb) {
+  _openNameModal(title, desc, attendees, false);
+  _nameCallback = cb;
+}
+
+function normalizeName(raw) {
+  const parts = raw.trim().split(/\s+/);
+  if (parts.length < 2) return null;
+  const first = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+  const initial = parts[1].charAt(0).toUpperCase();
+  return `${first} ${initial}`;
+}
+
 function closeNameModal(confirmed) {
-  const name = document.getElementById('name-input').value.trim();
-  if (confirmed) {
-    if (!name) {
-      document.getElementById('name-error').classList.remove('hidden');
-      document.getElementById('name-input').focus();
-      return;
-    }
-    sessionName = name;
-    document.getElementById('name-modal').classList.add('hidden');
-    if (_nameCallback) { _nameCallback(name); _nameCallback = null; }
-  } else {
+  if (!confirmed) {
     document.getElementById('name-modal').classList.add('hidden');
     _nameCallback = null;
+    return;
   }
+  const sel   = document.getElementById('name-select');
+  const isNew = sel.value === '__new__';
+  const raw   = isNew ? document.getElementById('new-name-input').value.trim() : sel.value;
+  const err   = document.getElementById('name-error');
+  if (!raw) {
+    err.textContent = isNew ? 'Please enter your name.' : 'Please select your name.';
+    err.classList.remove('hidden');
+    (isNew ? document.getElementById('new-name-input') : sel).focus();
+    return;
+  }
+  let name = raw;
+  if (isNew) {
+    const normalized = normalizeName(raw);
+    if (!normalized) {
+      err.textContent = 'Enter first name + last initial, e.g. "Maria S".';
+      err.classList.remove('hidden');
+      document.getElementById('new-name-input').focus();
+      return;
+    }
+    name = normalized;
+    const dup = allUsers.find(u => u.toLowerCase() === name.toLowerCase());
+    if (dup) {
+      err.textContent = `"${dup}" already exists — select from the list instead.`;
+      err.classList.remove('hidden');
+      document.getElementById('new-name-input').focus();
+      return;
+    }
+  }
+  document.getElementById('name-modal').classList.add('hidden');
+  if (_nameCallback) { _nameCallback(name, isNew); _nameCallback = null; }
 }
 
 document.getElementById('name-confirm-btn').addEventListener('click', () => closeNameModal(true));
 document.getElementById('name-cancel-btn').addEventListener('click',  () => closeNameModal(false));
 document.getElementById('name-backdrop').addEventListener('click',    () => closeNameModal(false));
-document.getElementById('name-input').addEventListener('keydown', e => {
+document.getElementById('name-select').addEventListener('change', () => {
+  const isNew = document.getElementById('name-select').value === '__new__';
+  document.getElementById('new-name-row').classList.toggle('hidden', !isNew);
+  document.getElementById('name-error').classList.add('hidden');
+  if (isNew) setTimeout(() => document.getElementById('new-name-input').focus(), 50);
+});
+document.getElementById('new-name-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') closeNameModal(true);
   document.getElementById('name-error').classList.add('hidden');
 });
@@ -486,46 +546,65 @@ document.getElementById('confirm-backdrop').addEventListener('click', () => {
 });
 
 // ─── Actions (all writes go straight to Firestore) ───────────────────────────
+
+// Register a new name in the users collection if not already there
+function registerName(name) {
+  if (!allUsers.includes(name)) {
+    addDoc(usersCol, { name, createdAt: new Date().toISOString() }).catch(() => {});
+  }
+}
+
 function actionJoin(id) {
   const ev = getEvent(id);
-  if (!ev || ev.cancelled) return;
-
-  if (isJoined(ev)) {
-    if (sessionName) {
-      updateDoc(doc(db, 'events', id), { attendees: arrayRemove(sessionName) })
-        .catch(() => toast('Could not leave — check your connection.'));
-    }
-    sessionEventIds.delete(id);
-    toast("You've left the event");
-    return;
-  }
-
-  if (isFull(ev)) return;
+  if (!ev || ev.cancelled || isFull(ev)) return;
 
   promptName(
-    "What's your name?",
-    "Just so others know who's coming — no account needed.",
-    name => {
+    "Who are you?",
+    "Select your name or add a new one to join.",
+    (name, isNew) => {
+      // Already on the list → auto-claim attendance (manage mode)
       if (ev.attendees.some(a => a.toLowerCase() === name.toLowerCase())) {
-        sessionEventIds.add(id);
+        sessionName = name;
         toast("You're already on the list!");
         render(); return;
       }
       if (isFull(ev)) { toast("Sorry, this event just filled up!"); return; }
-      updateDoc(doc(db, 'events', id), { attendees: arrayUnion(name) })
-        .catch(() => toast('Could not join — check your connection.'));
-      sessionEventIds.add(id);
+      if (isNew) registerName(name);
+      writeDoc(updateDoc(eventDoc(id), { attendees: arrayUnion(name) }), 'Could not join — check your connection.');
+      sessionName = name;
       toast("You're in! 🎉");
+      render();
     }
+  );
+}
+
+function actionLeave(id) {
+  if (!sessionName) return;
+  const name = sessionName;
+  sessionName = null;
+  writeDoc(updateDoc(eventDoc(id), { attendees: arrayRemove(name) }), 'Could not leave — check your connection.');
+  toast("You've left the event");
+  render();
+}
+
+function actionManage(id) {
+  const ev = getEvent(id);
+  if (!ev || !ev.attendees.length) return;
+  promptAttendee(
+    ev.attendees,
+    "Which one are you?",
+    "Select your name to manage your participation.",
+    name => { sessionName = name; render(); }
   );
 }
 
 function actionCreate(fd) {
   promptName(
     "Who's organizing this?",
-    "Your name will appear as the event host.",
-    async name => {
+    "Select your name or add a new one as the event host.",
+    async (name, isNew) => {
       navigate('board');
+      if (isNew) registerName(name);
       const data = {
         title:       fd.title.trim(),
         category:    fd.category,
@@ -539,10 +618,8 @@ function actionCreate(fd) {
         createdAt:   new Date().toISOString(),
       };
       try {
-        const ref = await addDoc(eventsCol, data);
-        sessionEventIds.add(ref.id);
+        await addDoc(eventsCol, data);
         toast('Event created! 🎉');
-        render();
       } catch {
         toast('Could not create event — check your connection.');
       }
@@ -554,14 +631,14 @@ function actionEdit(id, fd) {
   const ev = getEvent(id);
   if (!ev) return;
   const newCap = Math.max(ev.attendees.length, parseInt(fd.cap, 10));
-  updateDoc(doc(db, 'events', id), {
+  writeDoc(updateDoc(eventDoc(id), {
     title:       fd.title.trim(),
     category:    fd.category,
     dateTime:    new Date(fd.dateTime).toISOString(),
     location:    fd.location.trim(),
     cap:         newCap,
     description: (fd.description || '').trim(),
-  }).catch(() => toast('Could not save changes — check your connection.'));
+  }), 'Could not save changes — check your connection.');
   toast('Event updated');
   state.editing = false;
   render();
@@ -569,8 +646,7 @@ function actionEdit(id, fd) {
 
 function actionCancel(id) {
   confirmCancel(() => {
-    updateDoc(doc(db, 'events', id), { cancelled: true })
-      .catch(() => toast('Could not cancel event — check your connection.'));
+    writeDoc(updateDoc(eventDoc(id), { cancelled: true }), 'Could not cancel event — check your connection.');
     toast('Event cancelled');
     render();
   });
@@ -660,48 +736,25 @@ function renderBoard() {
 }
 
 function renderCard(ev) {
-  const st = capacityStatus(ev);
+  const st   = capacityStatus(ev);
   const full = isFull(ev);
-  const joined = isJoined(ev);
-  const canManage = sessionEventIds.has(ev.id) && !ev.cancelled;
 
-  let actionBtn = '';
-  if (ev.cancelled) {
-    actionBtn = `<div class="flex flex-1 items-center justify-center gap-xs h-12 rounded-md
-                              bg-error-container text-on-error-container text-label-lg">
-                   <span class="material-symbols-outlined text-[16px] icon-fill">cancel</span>Cancelled
-                 </div>`;
-  } else if (joined) {
-    actionBtn = `<button onclick="event.stopPropagation(); actionJoin('${ev.id}')"
-                   class="flex flex-1 items-center justify-center gap-xs h-12 rounded-md
-                          bg-secondary-container text-on-secondary-container text-label-lg
-                          hover:bg-secondary-fixed-dim transition-colors active:scale-[0.98]">
-                   <span class="material-symbols-outlined text-[18px] icon-fill">check_circle</span>
-                   Joined – Leave
-                 </button>`;
-  } else if (full) {
-    actionBtn = `<button disabled
-                   class="flex flex-1 items-center justify-center h-12 rounded-md
-                          bg-surface-container text-on-surface-variant text-label-lg cursor-not-allowed">
-                   Event Full
-                 </button>`;
-  } else {
-    actionBtn = `<button onclick="event.stopPropagation(); actionJoin('${ev.id}')"
-                   class="flex flex-1 items-center justify-center h-12 rounded-md
-                          bg-primary-container text-on-primary text-label-lg
-                          hover:bg-primary transition-colors shadow-sm active:scale-[0.98]">
-                   Join
-                 </button>`;
-  }
-
-  const manageBtn = canManage
-    ? `<button onclick="event.stopPropagation(); navigate('manage','${ev.id}')"
-         title="Manage event"
-         class="flex items-center justify-center h-12 w-12 rounded-md border border-outline-variant
-                text-on-surface-variant hover:bg-surface-container transition-colors shrink-0">
-         <span class="material-symbols-outlined text-[20px]">settings</span>
-       </button>`
-    : '';
+  const actionBtn = ev.cancelled
+    ? `<div class="flex flex-1 items-center justify-center gap-xs h-12 rounded-md
+                   bg-error-container text-on-error-container text-label-lg">
+         <span class="material-symbols-outlined text-[16px] icon-fill">cancel</span>Cancelled
+       </div>`
+    : full
+      ? `<button disabled class="flex flex-1 items-center justify-center h-12 rounded-md
+                                  bg-surface-container text-on-surface-variant text-label-lg cursor-not-allowed">
+           Event Full
+         </button>`
+      : `<button onclick="event.stopPropagation(); actionJoin('${ev.id}')"
+           class="flex flex-1 items-center justify-center h-12 rounded-md
+                  bg-primary-container text-on-primary text-label-lg
+                  hover:bg-primary transition-colors shadow-sm active:scale-[0.98]">
+           Join
+         </button>`;
 
   return `
     <article class="flex flex-col rounded-xl border border-surface-variant
@@ -717,8 +770,6 @@ function renderCard(ev) {
 
       <div class="p-gutter flex flex-col gap-md cursor-pointer select-none"
            onclick="navigate('detail','${ev.id}')">
-
-        <!-- Header row -->
         <div class="flex gap-gutter items-start">
           <div class="flex items-center justify-center rounded-full shrink-0 w-12 h-12
                       ${ev.cancelled ? 'bg-surface-container text-on-surface-variant' : 'bg-secondary-container text-on-secondary-container'}">
@@ -732,8 +783,6 @@ function renderCard(ev) {
             </p>
           </div>
         </div>
-
-        <!-- Capacity -->
         <div class="flex flex-col gap-base bg-surface-container-low p-sm rounded-md border border-surface-variant/50">
           <div class="flex justify-between items-center">
             <span class="text-label-md text-on-surface-variant uppercase tracking-wide">
@@ -747,10 +796,8 @@ function renderCard(ev) {
         </div>
       </div>
 
-      <!-- Actions -->
       <div class="px-gutter pb-gutter flex gap-base">
         ${actionBtn}
-        ${manageBtn}
       </div>
     </article>`;
 }
@@ -851,8 +898,8 @@ function renderDetail() {
 
   const st = capacityStatus(ev);
   const full = isFull(ev);
+  const host = isHost(ev);
   const joined = isJoined(ev);
-  const canManage = sessionEventIds.has(ev.id) && !ev.cancelled;
 
   // Action panel
   let actionPanel = '';
@@ -862,7 +909,34 @@ function renderDetail() {
         <span class="material-symbols-outlined text-[24px] text-error icon-fill mt-xs shrink-0">cancel</span>
         <div>
           <p class="text-label-lg font-bold text-on-error-container">Event Cancelled</p>
-          <p class="text-body-md text-on-error-container/80">This event was cancelled by the host.</p>
+          <p class="text-body-md text-on-error-container/80">Cancelled by ${esc(ev.host)}.</p>
+        </div>
+      </section>`;
+  } else if (host) {
+    actionPanel = `
+      <section class="bg-primary-container border border-primary-container rounded-xl p-md
+                      flex flex-col gap-sm relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-primary"></div>
+        <div class="flex items-center gap-sm">
+          <span class="material-symbols-outlined text-[22px] text-primary icon-fill">star</span>
+          <h3 class="text-headline-sm text-on-primary-container">You're the host</h3>
+        </div>
+        <p class="text-body-md text-on-primary-container/80">
+          You organized this event. Manage details or cancel below.
+        </p>
+        <div class="flex flex-col gap-sm">
+          <button onclick="navigate('manage','${ev.id}')"
+            class="w-full h-12 bg-primary text-on-primary text-label-lg rounded-full
+                   hover:bg-surface-tint transition-colors flex items-center justify-center gap-xs shadow-sm">
+            <span class="material-symbols-outlined text-[20px]">edit</span>
+            Edit Details
+          </button>
+          <button onclick="actionCancel('${ev.id}')"
+            class="w-full h-12 rounded-full border-2 border-error text-error
+                   text-label-lg hover:bg-error-container transition-colors flex items-center justify-center gap-xs">
+            <span class="material-symbols-outlined text-[20px]">cancel</span>
+            Cancel Event
+          </button>
         </div>
       </section>`;
   } else if (joined) {
@@ -877,22 +951,39 @@ function renderDetail() {
         <p class="text-body-md text-on-secondary-container/80">
           You're on the list. We'll see you there!
         </p>
-        <button onclick="actionJoin('${ev.id}')"
+        <button onclick="actionLeave('${ev.id}')"
           class="w-full h-12 rounded-full border-2 border-secondary text-secondary
                  text-label-lg hover:bg-surface-container transition-colors">
           Leave Event
         </button>
       </section>`;
   } else if (full) {
+    const manageBtn = ev.attendees.length ? `
+      <button onclick="actionManage('${ev.id}')"
+        class="w-full h-11 mt-sm rounded-full border border-outline text-on-surface-variant
+               text-label-md hover:bg-surface-container transition-colors flex items-center justify-center gap-xs">
+        <span class="material-symbols-outlined text-[18px]">manage_accounts</span>
+        Manage my attendance
+      </button>` : '';
     actionPanel = `
-      <section class="bg-surface-container border border-surface-variant rounded-xl p-md flex items-center gap-sm">
-        <span class="material-symbols-outlined text-[24px] text-on-surface-variant">group_off</span>
-        <div>
-          <p class="text-label-lg font-bold text-on-surface">Event is Full</p>
-          <p class="text-body-md text-on-surface-variant">All spots have been taken.</p>
+      <section class="bg-surface-container border border-surface-variant rounded-xl p-md flex flex-col gap-sm">
+        <div class="flex items-center gap-sm">
+          <span class="material-symbols-outlined text-[24px] text-on-surface-variant">group_off</span>
+          <div>
+            <p class="text-label-lg font-bold text-on-surface">Event is Full</p>
+            <p class="text-body-md text-on-surface-variant">All spots have been taken.</p>
+          </div>
         </div>
+        ${manageBtn}
       </section>`;
   } else {
+    const manageBtn = ev.attendees.length ? `
+      <button onclick="actionManage('${ev.id}')"
+        class="w-full h-11 rounded-full border border-outline text-on-surface-variant
+               text-label-md hover:bg-surface-container transition-colors flex items-center justify-center gap-xs">
+        <span class="material-symbols-outlined text-[18px]">manage_accounts</span>
+        Already attending? Manage
+      </button>` : '';
     actionPanel = `
       <section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md
                       shadow-card flex flex-col gap-sm relative overflow-hidden">
@@ -908,13 +999,7 @@ function renderDetail() {
           <span class="material-symbols-outlined text-[20px]">check_circle</span>
           Confirm &amp; Join
         </button>
-        <div class="flex justify-center">
-          <span class="bg-surface-container-low text-on-surface-variant px-sm py-xs rounded-md
-                       text-label-md flex items-center gap-xs">
-            <span class="material-symbols-outlined text-[14px]">info</span>
-            Your name is only saved for this session.
-          </span>
-        </div>
+        ${manageBtn}
       </section>`;
   }
 
@@ -943,7 +1028,7 @@ function renderDetail() {
         <span class="material-symbols-outlined text-[24px] text-on-surface">arrow_back</span>
       </button>
       <h1 class="text-headline-sm text-on-surface flex-1 truncate">${esc(ev.title)}</h1>
-      ${canManage ? `
+      ${host ? `
         <button onclick="navigate('manage','${ev.id}')"
           class="w-12 h-12 flex items-center justify-center rounded-full
                  hover:bg-surface-container transition-colors text-on-surface-variant shrink-0">
@@ -1008,15 +1093,6 @@ function renderDetail() {
         }
       </section>
 
-      ${canManage ? `
-        <section class="border-t border-surface-variant pt-sm">
-          <button onclick="navigate('manage','${ev.id}')"
-            class="w-full h-12 rounded-md border border-outline text-on-surface text-label-lg
-                   flex items-center justify-center gap-xs hover:bg-surface-container transition-colors">
-            <span class="material-symbols-outlined text-[20px]">settings</span>
-            Manage Event
-          </button>
-        </section>` : ''}
     </main>`;
 }
 
@@ -1210,18 +1286,19 @@ function render() {
 }
 
 // ─── Expose to inline onclick handlers (ES module scope is isolated) ──────────
-window.navigate     = navigate;
-window.setFilter    = setFilter;
-window.actionJoin   = actionJoin;
-window.actionCancel = actionCancel;
-window.submitCreate = submitCreate;
-window.submitEdit   = submitEdit;
-window.state        = state;
-window.render       = render;
+window.navigate      = navigate;
+window.setFilter     = setFilter;
+window.actionJoin    = actionJoin;
+window.actionLeave   = actionLeave;
+window.actionManage  = actionManage;
+window.actionCancel  = actionCancel;
+window.submitCreate  = submitCreate;
+window.submitEdit    = submitEdit;
+window.state         = state;
+window.render        = render;
 
-// ─── Re-render when tab becomes visible (mobile background suspension) ───────
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') render();
+  if (document.visibilityState === 'visible' && state.view !== 'loading') render();
 });
 
 // ─── Boot ────────────────────────────────────────────────────────────────────
