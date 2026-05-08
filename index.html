@@ -286,15 +286,8 @@ const state = {
 
 // ─── Events (Firestore) ──────────────────────────────────────────────────────
 let events = [];
-let _seeded = false;
 
-async function seedEvents() {
-  _seeded = true;
-  await Promise.all(makeSampleEvents().map(({ id, ...data }) => addDoc(eventsCol, data)));
-}
-
-onSnapshot(eventsCol, async snap => {
-  if (!_seeded && snap.empty) { await seedEvents(); return; }
+onSnapshot(eventsCol, snap => {
   events = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   const participants = new Set();
   events.forEach(ev => {
@@ -309,71 +302,6 @@ onSnapshot(eventsCol, async snap => {
   console.error('Firestore error', err);
   toast('Connection error — please refresh.');
 });
-
-function makeSampleEvents() {
-  const now = new Date();
-  function dt(offsetDays, h, m = 0) {
-    const d = new Date(now);
-    d.setDate(d.getDate() + offsetDays);
-    d.setHours(h, m, 0, 0);
-    return d.toISOString();
-  }
-  const daysToSat = ((6 - now.getDay()) + 7) % 7 || 7;
-  return [
-    {
-      id: 'sample-1',
-      title: 'Friday Night Soccer',
-      category: 'sports',
-      dateTime: dt(1, 18),
-      location: 'Central Park Field 3',
-      cap: 10,
-      description: 'Pickup soccer after the shift! All skill levels welcome. Bring cleats if you have them — or just show up.',
-      host: 'Alex Chen',
-      attendees: ['Alex Chen', 'Maria S.', 'David L.', 'Sarah W.', 'Kevin T.', 'Jenny M.', 'Tom B.', 'Lisa K.'],
-      cancelled: false,
-      createdAt: now.toISOString(),
-    },
-    {
-      id: 'sample-2',
-      title: 'Late Night Ramen Run',
-      category: 'food',
-      dateTime: dt(2, 21),
-      location: 'Daikokuya Little Tokyo',
-      cap: 12,
-      description: 'Late dinner after closing shift. First round of gyoza is on me!',
-      host: 'Sarah Kim',
-      attendees: ['Sarah Kim', 'Mike R.', 'Jenny L.'],
-      cancelled: false,
-      createdAt: now.toISOString(),
-    },
-    {
-      id: 'sample-3',
-      title: 'Saturday Hoops',
-      category: 'sports',
-      dateTime: dt(daysToSat, 10),
-      location: 'YMCA Downtown',
-      cap: 10,
-      description: "Casual basketball Saturday morning. We'll play until noon then grab brunch nearby.",
-      host: 'Mike Torres',
-      attendees: ['Mike Torres', 'Alex C.', 'Danny W.', 'Jay L.', 'Ryan K.', 'Chris M.', 'Sam H.', 'Tony P.', 'Joe R.', 'Paul S.'],
-      cancelled: false,
-      createdAt: now.toISOString(),
-    },
-    {
-      id: 'sample-4',
-      title: 'Team Hot Pot Lunch',
-      category: 'food',
-      dateTime: dt(7, 12),
-      location: 'Haidilao – Arcadia',
-      cap: 16,
-      description: "Monthly team lunch! All departments welcome. Let's catch up over hot pot.",
-      host: 'Linda Wu',
-      attendees: ['Linda Wu', 'James T.', 'Amy K.', 'Robert M.', 'Christine L.'],
-      cancelled: false,
-      createdAt: now.toISOString(),
-    },
-  ];
-}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -754,14 +682,26 @@ function renderBoard() {
       ${label}
     </button>`;
 
+  const emptyMsg = state.filter === 'all'
+    ? { icon: 'calendar_add_on', heading: 'No events yet', sub: 'Get things started by creating the first one.' }
+    : state.filter === 'sports'
+    ? { icon: 'sports_soccer',   heading: 'No sports events', sub: 'Switch to All or create a sports event.' }
+    : { icon: 'ramen_dining',    heading: 'No food events',   sub: 'Switch to All or create a food event.' };
+
   const cards = list.length
     ? list.map(renderCard).join('')
-    : `<div class="flex flex-col items-center justify-center py-xl text-center gap-md">
-         <span class="material-symbols-outlined text-[72px] text-on-surface-variant/30">event_busy</span>
-         <div>
-           <p class="text-headline-sm text-on-surface-variant/50">No events yet</p>
-           <p class="text-body-md text-on-surface-variant/40 mt-xs">Be the first to create one!</p>
+    : `<div class="flex flex-col items-center justify-center py-xl text-center gap-lg">
+         <span class="material-symbols-outlined text-[72px] text-on-surface-variant/30">${emptyMsg.icon}</span>
+         <div class="flex flex-col gap-xs">
+           <p class="text-headline-sm text-on-surface-variant/60">${emptyMsg.heading}</p>
+           <p class="text-body-md text-on-surface-variant/40">${emptyMsg.sub}</p>
          </div>
+         <button onclick="navigate('create')"
+           class="h-12 px-gutter rounded-full bg-primary text-on-primary text-label-lg
+                  hover:bg-surface-tint transition-colors shadow-sm flex items-center gap-xs">
+           <span class="material-symbols-outlined text-[20px]">add_circle</span>
+           Create an Event
+         </button>
        </div>`;
 
   return `
