@@ -646,7 +646,7 @@ function actionCancel(id) {
 const AVATAR_COLORS = [
   'bg-tertiary-container text-on-tertiary-container',
   'bg-secondary-container text-on-secondary-container',
-  'bg-primary-container text-on-primary-container',
+  'bg-primary-container text-on-primary',
   'bg-surface-container-high text-on-surface',
 ];
 
@@ -916,20 +916,20 @@ function renderDetail() {
       </section>`;
   } else if (host) {
     actionPanel = `
-      <section class="bg-primary-container border border-primary-container rounded-xl p-md
-                      flex flex-col gap-sm relative overflow-hidden">
+      <section class="bg-surface-container-lowest border border-primary rounded-xl p-md
+                      flex flex-col gap-sm relative overflow-hidden shadow-card">
         <div class="absolute top-0 left-0 w-full h-1 bg-primary"></div>
         <div class="flex items-center gap-sm">
           <span class="material-symbols-outlined text-[22px] text-primary icon-fill">star</span>
-          <h3 class="text-headline-sm text-on-primary-container">You're the host</h3>
+          <h3 class="text-headline-sm text-on-surface">You're the host</h3>
         </div>
-        <p class="text-body-md text-on-primary-container/80">
+        <p class="text-body-md text-on-surface-variant">
           You organized this event. Manage details or cancel below.
         </p>
         <div class="flex flex-col gap-sm">
           <button onclick="navigate('manage','${ev.id}')"
             class="w-full h-12 bg-primary text-on-primary text-label-lg rounded-full
-                   hover:bg-surface-tint transition-colors flex items-center justify-center gap-xs shadow-sm">
+                   hover:opacity-90 transition-opacity flex items-center justify-center gap-xs shadow-sm">
             <span class="material-symbols-outlined text-[20px]">edit</span>
             Edit Details
           </button>
