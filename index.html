@@ -155,13 +155,22 @@
         </select>
       </label>
       <div id="new-name-row" class="hidden mb-sm">
-        <label>
-          <span class="text-label-lg text-on-surface block mb-xs">First name + last initial (e.g. Maria S)</span>
-          <input id="new-name-input" type="text" maxlength="40" placeholder="e.g. Maria S"
-            class="w-full h-12 px-sm rounded-md border border-outline bg-surface text-on-surface text-body-md
-                   focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all
-                   placeholder:text-on-surface-variant/50" />
-        </label>
+        <div class="flex gap-sm">
+          <label class="flex-1 flex flex-col gap-xs">
+            <span class="text-label-lg text-on-surface">First name</span>
+            <input id="new-name-first" type="text" maxlength="10" placeholder="e.g. Maria"
+              class="w-full h-12 px-sm rounded-md border border-outline bg-surface text-on-surface text-body-md
+                     focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all
+                     placeholder:text-on-surface-variant/50" />
+          </label>
+          <label class="w-20 flex flex-col gap-xs">
+            <span class="text-label-lg text-on-surface">Last initial</span>
+            <input id="new-name-initial" type="text" maxlength="1" placeholder="S"
+              class="w-full h-12 px-sm rounded-md border border-outline bg-surface text-on-surface text-body-md
+                     focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all
+                     placeholder:text-on-surface-variant/50 text-center uppercase" />
+          </label>
+        </div>
       </div>
       <p id="name-error" class="hidden text-label-md text-error mb-sm">Please select your name.</p>
       <div class="flex gap-sm">
@@ -446,7 +455,8 @@ function _openNameModal(title, desc, options, allowNew) {
     options.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('') +
     (allowNew ? `<option value="__new__">➕ Add new name…</option>` : '');
   document.getElementById('new-name-row').classList.add('hidden');
-  document.getElementById('new-name-input').value = '';
+  document.getElementById('new-name-first').value = '';
+  document.getElementById('new-name-initial').value = '';
   document.getElementById('name-error').classList.add('hidden');
   document.getElementById('name-modal').classList.remove('hidden');
   setTimeout(() => sel.focus(), 50);
@@ -464,13 +474,7 @@ function promptAttendee(attendees, title, desc, cb) {
   _nameCallback = cb;
 }
 
-function normalizeName(raw) {
-  const parts = raw.trim().split(/\s+/);
-  if (parts.length < 2) return null;
-  const first = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
-  const initial = parts[1].charAt(0).toUpperCase();
-  return `${first} ${initial}`;
-}
+const LETTERS_ONLY = /^[a-zA-Z]+$/;
 
 function closeNameModal(confirmed) {
   if (!confirmed) {
@@ -480,34 +484,59 @@ function closeNameModal(confirmed) {
   }
   const sel   = document.getElementById('name-select');
   const isNew = sel.value === '__new__';
-  const raw   = isNew ? document.getElementById('new-name-input').value.trim() : sel.value;
   const err   = document.getElementById('name-error');
-  if (!raw) {
-    err.textContent = isNew ? 'Please enter your name.' : 'Please select your name.';
-    err.classList.remove('hidden');
-    (isNew ? document.getElementById('new-name-input') : sel).focus();
+
+  if (!isNew) {
+    if (!sel.value) {
+      err.textContent = 'Please select your name.';
+      err.classList.remove('hidden');
+      sel.focus();
+      return;
+    }
+    document.getElementById('name-modal').classList.add('hidden');
+    if (_nameCallback) { _nameCallback(sel.value, false); _nameCallback = null; }
     return;
   }
-  let name = raw;
-  if (isNew) {
-    const normalized = normalizeName(raw);
-    if (!normalized) {
-      err.textContent = 'Enter first name + last initial, e.g. "Maria S".';
-      err.classList.remove('hidden');
-      document.getElementById('new-name-input').focus();
-      return;
-    }
-    name = normalized;
-    const dup = allUsers.find(u => u.toLowerCase() === name.toLowerCase());
-    if (dup) {
-      err.textContent = `"${dup}" already exists — select from the list instead.`;
-      err.classList.remove('hidden');
-      document.getElementById('new-name-input').focus();
-      return;
-    }
+
+  const firstRaw   = document.getElementById('new-name-first').value.trim();
+  const initialRaw = document.getElementById('new-name-initial').value.trim();
+
+  if (!firstRaw) {
+    err.textContent = 'Please enter your first name.';
+    err.classList.remove('hidden');
+    document.getElementById('new-name-first').focus();
+    return;
   }
+  if (!LETTERS_ONLY.test(firstRaw)) {
+    err.textContent = 'First name must contain letters only.';
+    err.classList.remove('hidden');
+    document.getElementById('new-name-first').focus();
+    return;
+  }
+  if (!initialRaw) {
+    err.textContent = 'Please enter your last initial.';
+    err.classList.remove('hidden');
+    document.getElementById('new-name-initial').focus();
+    return;
+  }
+  if (!LETTERS_ONLY.test(initialRaw)) {
+    err.textContent = 'Last initial must be a letter.';
+    err.classList.remove('hidden');
+    document.getElementById('new-name-initial').focus();
+    return;
+  }
+
+  const name = `${firstRaw.charAt(0).toUpperCase()}${firstRaw.slice(1)} ${initialRaw.toUpperCase()}`;
+  const dup = allUsers.find(u => u.toLowerCase() === name.toLowerCase());
+  if (dup) {
+    err.textContent = `"${dup}" already exists — select from the list instead.`;
+    err.classList.remove('hidden');
+    document.getElementById('new-name-first').focus();
+    return;
+  }
+
   document.getElementById('name-modal').classList.add('hidden');
-  if (_nameCallback) { _nameCallback(name, isNew); _nameCallback = null; }
+  if (_nameCallback) { _nameCallback(name, true); _nameCallback = null; }
 }
 
 document.getElementById('name-confirm-btn').addEventListener('click', () => closeNameModal(true));
@@ -517,11 +546,21 @@ document.getElementById('name-select').addEventListener('change', () => {
   const isNew = document.getElementById('name-select').value === '__new__';
   document.getElementById('new-name-row').classList.toggle('hidden', !isNew);
   document.getElementById('name-error').classList.add('hidden');
-  if (isNew) setTimeout(() => document.getElementById('new-name-input').focus(), 50);
+  if (isNew) setTimeout(() => document.getElementById('new-name-first').focus(), 50);
 });
-document.getElementById('new-name-input').addEventListener('keydown', e => {
+document.getElementById('new-name-first').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('new-name-initial').focus();
+  document.getElementById('name-error').classList.add('hidden');
+});
+document.getElementById('new-name-initial').addEventListener('keydown', e => {
   if (e.key === 'Enter') closeNameModal(true);
   document.getElementById('name-error').classList.add('hidden');
+});
+// Block non-letter input on both new-name fields
+['new-name-first', 'new-name-initial'].forEach(id => {
+  document.getElementById(id).addEventListener('input', function() {
+    this.value = this.value.replace(/[^a-zA-Z]/g, '');
+  });
 });
 
 // ─── Cancel-confirm modal ─────────────────────────────────────────────────────
