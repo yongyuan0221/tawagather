@@ -82,13 +82,19 @@
             sans: ['"Work Sans"', 'sans-serif'],
           },
           fontSize: {
-            'headline-lg': ['32px', { lineHeight: '1.2',  fontWeight: '700' }],
-            'headline-md': ['24px', { lineHeight: '1.3',  fontWeight: '600' }],
-            'headline-sm': ['20px', { lineHeight: '1.4',  fontWeight: '600' }],
-            'body-lg':     ['18px', { lineHeight: '1.6',  fontWeight: '400' }],
-            'body-md':     ['16px', { lineHeight: '1.5',  fontWeight: '400' }],
-            'label-lg':    ['14px', { lineHeight: '1.2',  fontWeight: '600', letterSpacing: '0.02em' }],
-            'label-md':    ['12px', { lineHeight: '1.2',  fontWeight: '500' }],
+            'headline-lg':  ['2rem',      { lineHeight: '1.2', fontWeight: '700' }],
+            'headline-md':  ['1.5rem',    { lineHeight: '1.3', fontWeight: '600' }],
+            'headline-sm':  ['1.25rem',   { lineHeight: '1.4', fontWeight: '600' }],
+            'body-lg':      ['1.125rem',  { lineHeight: '1.6', fontWeight: '400' }],
+            'body-md':      ['1rem',      { lineHeight: '1.5', fontWeight: '400' }],
+            'label-lg':     ['0.875rem',  { lineHeight: '1.2', fontWeight: '600', letterSpacing: '0.02em' }],
+            'label-md':     ['0.75rem',   { lineHeight: '1.2', fontWeight: '500' }],
+            'label-xs':     ['0.625rem',  { lineHeight: '1.2', fontWeight: '700' }],
+            'cal-month':    ['0.5625rem', { lineHeight: '1',   fontWeight: '700', letterSpacing: '0.1em' }],
+            'cal-month-lg': ['0.6875rem', { lineHeight: '1',   fontWeight: '700', letterSpacing: '0.1em' }],
+            'cal-day':      ['1.1875rem', { lineHeight: '1',   fontWeight: '700' }],
+            'cal-day-lg':   ['1.75rem',   { lineHeight: '1',   fontWeight: '700' }],
+            'display-sm':   ['4.5rem',    { lineHeight: '1' }],
           },
           spacing: {
             'xs':               '4px',
@@ -138,8 +144,15 @@
     .slide-up { animation: slideUp 0.22s ease-out; }
     .fade-in  { animation: fadeIn  0.18s ease-out; }
 
-    /* smooth progress bar */
-    .progress-fill { transition: width 0.4s ease; }
+    /* smooth progress bar — scaleX avoids layout (width triggers reflow) */
+    .progress-fill { width: 100%; transform-origin: left; transition: transform 0.4s ease; }
+
+    /* keyboard focus ring on all interactive elements */
+    button:focus-visible, [role="button"]:focus-visible, a:focus-visible {
+      outline: 2px solid #9e001f;
+      outline-offset: 2px;
+      border-radius: 0.25rem;
+    }
 
     /* datetime-local browser chrome fix */
     input[type="datetime-local"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: pointer; }
@@ -149,10 +162,17 @@
 <body class="bg-background text-on-surface font-sans antialiased overflow-x-hidden">
 
   <!-- ── Main app container ─────────────────────────────────────────── -->
-  <div id="app" class="mx-auto max-w-[960px] min-h-screen flex flex-col bg-surface shadow-sm relative"></div>
+  <div id="app" class="mx-auto max-w-[960px] min-h-screen flex flex-col bg-surface shadow-sm relative">
+    <noscript>
+      <div class="flex flex-col items-center justify-center py-xl px-md text-center gap-md">
+        <p class="text-headline-sm text-on-surface">JavaScript required</p>
+        <p class="text-body-md text-on-surface-variant">Please enable JavaScript to use Tawagather.</p>
+      </div>
+    </noscript>
+  </div>
 
   <!-- ── Name picker modal (join / create / manage) ─────────────────── -->
-  <div id="name-modal" class="hidden fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
+  <div id="name-modal" role="dialog" aria-modal="true" aria-labelledby="name-modal-title" class="hidden fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
     <div id="name-backdrop" class="absolute inset-0 bg-black/40 backdrop-blur-sm fade-in"></div>
     <div class="relative w-full sm:max-w-md mx-auto bg-surface-container-lowest rounded-t-2xl sm:rounded-xl shadow-2xl p-md pb-8 sm:pb-md slide-up">
       <div class="w-10 h-1 bg-surface-variant rounded-full mx-auto mb-md sm:hidden"></div>
@@ -197,13 +217,13 @@
   </div>
 
   <!-- ── Cancel-confirmation modal ───────────────────────────────────── -->
-  <div id="confirm-modal" class="hidden fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
+  <div id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" class="hidden fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
     <div id="confirm-backdrop" class="absolute inset-0 bg-black/40 backdrop-blur-sm fade-in"></div>
     <div class="relative w-full sm:max-w-sm mx-auto bg-surface-container-lowest rounded-t-2xl sm:rounded-xl shadow-2xl p-md pb-8 sm:pb-md slide-up">
       <div class="w-10 h-1 bg-surface-variant rounded-full mx-auto mb-md sm:hidden"></div>
       <div class="flex items-center gap-sm mb-sm">
-        <span class="material-symbols-outlined text-[28px] text-error icon-fill">cancel</span>
-        <h2 class="text-headline-sm text-on-surface">Cancel this event?</h2>
+        <span class="material-symbols-outlined text-[28px] text-error icon-fill" aria-hidden="true">cancel</span>
+        <h2 id="confirm-modal-title" class="text-headline-sm text-on-surface">Cancel this event?</h2>
       </div>
       <p class="text-body-md text-on-surface-variant mb-md">
         All attendees will see a cancellation notice. This cannot be undone.
@@ -221,6 +241,9 @@
 
   <!-- ── Toast ───────────────────────────────────────────────────────── -->
   <div id="toast"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
     class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[200]
            bg-inverse-surface text-inverse-on-surface
            px-md py-sm rounded-full text-label-lg shadow-xl
@@ -437,6 +460,27 @@ function navigate(view, id = null) {
 
 // ─── Name-modal logic ────────────────────────────────────────────────────────
 let _nameCallback = null;
+let _nameTrapCleanup = null;
+let _confirmTrapCleanup = null;
+
+function _installFocusTrap(modal, closeFn) {
+  function handler(e) {
+    if (e.key === 'Escape') { e.preventDefault(); closeFn(); return; }
+    if (e.key !== 'Tab') return;
+    const els = [...modal.querySelectorAll(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )].filter(el => !el.closest('[hidden]') && !el.closest('.hidden'));
+    if (els.length < 2) return;
+    const first = els[0], last = els[els.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault(); last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault(); first.focus();
+    }
+  }
+  modal.addEventListener('keydown', handler);
+  return () => modal.removeEventListener('keydown', handler);
+}
 
 function _openNameModal(title, desc, options, allowNew) {
   document.getElementById('name-modal-title').textContent = title;
@@ -450,6 +494,11 @@ function _openNameModal(title, desc, options, allowNew) {
   document.getElementById('new-name-initial').value = '';
   document.getElementById('name-error').classList.add('hidden');
   document.getElementById('name-modal').classList.remove('hidden');
+  if (_nameTrapCleanup) _nameTrapCleanup();
+  _nameTrapCleanup = _installFocusTrap(
+    document.getElementById('name-modal'),
+    () => closeNameModal(false)
+  );
   setTimeout(() => sel.focus(), 50);
 }
 
@@ -468,6 +517,7 @@ function promptAttendee(attendees, title, desc, cb) {
 const LETTERS_ONLY = /^[a-zA-Z]+$/;
 
 function closeNameModal(confirmed) {
+  if (_nameTrapCleanup) { _nameTrapCleanup(); _nameTrapCleanup = null; }
   if (!confirmed) {
     document.getElementById('name-modal').classList.add('hidden');
     _nameCallback = null;
@@ -560,17 +610,30 @@ let _cancelCallback = null;
 function confirmCancel(cb) {
   document.getElementById('confirm-modal').classList.remove('hidden');
   _cancelCallback = cb;
+  if (_confirmTrapCleanup) _confirmTrapCleanup();
+  _confirmTrapCleanup = _installFocusTrap(
+    document.getElementById('confirm-modal'),
+    () => {
+      if (_confirmTrapCleanup) { _confirmTrapCleanup(); _confirmTrapCleanup = null; }
+      document.getElementById('confirm-modal').classList.add('hidden');
+      _cancelCallback = null;
+    }
+  );
+  setTimeout(() => document.getElementById('confirm-back-btn').focus(), 50);
 }
 
 document.getElementById('confirm-ok-btn').addEventListener('click', () => {
+  if (_confirmTrapCleanup) { _confirmTrapCleanup(); _confirmTrapCleanup = null; }
   document.getElementById('confirm-modal').classList.add('hidden');
   if (_cancelCallback) { _cancelCallback(); _cancelCallback = null; }
 });
 document.getElementById('confirm-back-btn').addEventListener('click', () => {
+  if (_confirmTrapCleanup) { _confirmTrapCleanup(); _confirmTrapCleanup = null; }
   document.getElementById('confirm-modal').classList.add('hidden');
   _cancelCallback = null;
 });
 document.getElementById('confirm-backdrop').addEventListener('click', () => {
+  if (_confirmTrapCleanup) { _confirmTrapCleanup(); _confirmTrapCleanup = null; }
   document.getElementById('confirm-modal').classList.add('hidden');
   _cancelCallback = null;
 });
@@ -604,7 +667,7 @@ function actionJoin(id) {
       if (isNew) registerName(name);
       writeDoc(updateDoc(eventDoc(id), { attendees: arrayUnion(name) }), 'Could not join — check your connection.');
       sessionName = name;
-      toast("You're in! 🎉");
+      toast("You're in!");
       render();
     }
   );
@@ -663,7 +726,7 @@ function actionCreate(fd) {
       };
       try {
         await addDoc(eventsCol, data);
-        toast('Event created! 🎉');
+        toast('Event created!');
       } catch {
         toast('Could not create event — check your connection.');
       }
@@ -714,9 +777,10 @@ function hdrBack(label, onBack) {
     <header class="sticky top-0 z-10 bg-surface/95 backdrop-blur-md border-b border-surface-variant
                    px-container-margin py-sm flex items-center gap-sm">
       <button onclick="${onBack}"
+        aria-label="Go back"
         class="w-12 h-12 flex items-center justify-center rounded-full
                hover:bg-surface-container transition-colors -ml-2 shrink-0">
-        <span class="material-symbols-outlined text-[24px] text-on-surface">arrow_back</span>
+        <span class="material-symbols-outlined text-[24px] text-on-surface" aria-hidden="true">arrow_back</span>
       </button>
       <h1 class="text-headline-sm text-on-surface truncate">${esc(label)}</h1>
     </header>`;
@@ -728,7 +792,7 @@ function renderBoard() {
 
   const filterBtn = (val, label) => `
     <button onclick="setFilter('${val}')"
-      class="flex h-[40px] shrink-0 items-center justify-center gap-xs rounded-full px-gutter text-label-lg border transition-colors ${
+      class="flex h-11 shrink-0 items-center justify-center gap-xs rounded-full px-gutter text-label-lg border transition-colors ${
         state.filter === val
           ? 'bg-secondary-container text-on-secondary-container border-transparent shadow-sm'
           : 'bg-surface-container text-on-surface border-outline-variant hover:bg-surface-container-high'
@@ -745,7 +809,7 @@ function renderBoard() {
   const cards = list.length
     ? list.map(renderCard).join('')
     : `<div class="flex flex-col items-center justify-center py-xl text-center gap-lg">
-         <span class="material-symbols-outlined text-[72px] text-on-surface-variant/30">${emptyMsg.icon}</span>
+         <span class="material-symbols-outlined text-display-sm text-on-surface-variant/30" aria-hidden="true">${emptyMsg.icon}</span>
          <div class="flex flex-col gap-xs">
            <p class="text-headline-sm text-on-surface-variant/60">${emptyMsg.heading}</p>
            <p class="text-body-md text-on-surface-variant/40">${emptyMsg.sub}</p>
@@ -753,7 +817,7 @@ function renderBoard() {
          <button onclick="navigate('create')"
            class="h-12 px-gutter rounded-full bg-primary text-on-primary text-label-lg
                   hover:bg-surface-tint transition-colors shadow-sm flex items-center gap-xs">
-           <span class="material-symbols-outlined text-[20px]">add_circle</span>
+           <span class="material-symbols-outlined text-[20px]" aria-hidden="true">add_circle</span>
            Create an Event
          </button>
        </div>`;
@@ -762,19 +826,21 @@ function renderBoard() {
     <header class="sticky top-0 z-10 flex items-center justify-between
                    border-b border-surface-variant px-container-margin py-3
                    bg-surface/95 backdrop-blur-md">
-      <img src="logo.png" alt="Tawagather" class="h-8 w-auto" />
+      <h1 class="sr-only">Tawagather Events Board</h1>
+      <img src="logo.png" alt="" role="presentation" aria-hidden="true" class="h-8 w-auto" />
       <button onclick="navigate('create')"
-        class="flex items-center justify-center rounded-md h-12 px-gutter
+        class="flex items-center gap-xs justify-center rounded-md h-12 px-gutter
                bg-primary-container text-on-primary text-label-lg
                hover:bg-primary transition-colors shadow-sm min-w-[110px]">
-        + New Event
+        <span class="material-symbols-outlined text-[18px]" aria-hidden="true">add</span>
+        New Event
       </button>
     </header>
 
     <div class="flex gap-sm px-container-margin py-md overflow-x-auto no-scrollbar border-b border-surface-variant/50">
       ${filterBtn('all', 'All')}
-      ${filterBtn('sports', '⚽ Sports')}
-      ${filterBtn('food', '🍜 Food & Drinks')}
+      ${filterBtn('sports', '<span aria-hidden="true">⚽</span> Sports')}
+      ${filterBtn('food', '<span aria-hidden="true">🍜</span> Food &amp; Drinks')}
     </div>
 
     <main class="flex flex-col gap-md px-container-margin py-md pb-xl">
@@ -785,7 +851,7 @@ function renderBoard() {
       <span>Made by <span class="font-semibold text-on-surface">Gary Li</span></span>
       <a href="mailto:garyl@tawa.com"
          class="flex items-center gap-xs hover:text-primary transition-colors">
-        <span class="material-symbols-outlined text-[16px]">mail</span>
+        <span class="material-symbols-outlined text-[16px]" aria-hidden="true">mail</span>
         garyl@tawa.com
       </a>
     </footer>`;
@@ -798,7 +864,7 @@ function renderCard(ev) {
   const actionBtn = ev.cancelled
     ? `<div class="flex flex-1 items-center justify-center gap-xs h-12 rounded-md
                    bg-error-container text-on-error-container text-label-lg">
-         <span class="material-symbols-outlined text-[16px] icon-fill">cancel</span>Cancelled
+         <span class="material-symbols-outlined text-[16px] icon-fill" aria-hidden="true">cancel</span>Cancelled
        </div>`
     : full
       ? `<button disabled class="flex flex-1 items-center justify-center h-12 rounded-md
@@ -820,7 +886,7 @@ function renderCard(ev) {
       ${ev.cancelled ? `
         <div class="bg-error-container text-on-error-container text-label-md
                     px-gutter py-xs flex items-center gap-xs">
-          <span class="material-symbols-outlined text-[14px] icon-fill">cancel</span>
+          <span class="material-symbols-outlined text-[14px] icon-fill" aria-hidden="true">cancel</span>
           This event has been cancelled
         </div>` : ''}
 
@@ -829,7 +895,7 @@ function renderCard(ev) {
         <div class="flex gap-gutter items-start">
           <div class="flex items-center justify-center rounded-full shrink-0 w-12 h-12
                       ${ev.cancelled ? 'bg-surface-container text-on-surface-variant' : 'bg-secondary-container text-on-secondary-container'}">
-            <span class="material-symbols-outlined text-[28px]">${CAT_ICON[ev.category]}</span>
+            <span class="material-symbols-outlined text-[28px]" aria-hidden="true">${CAT_ICON[ev.category]}</span>
           </div>
           <div class="flex-1 min-w-0">
             <h3 class="text-headline-md text-on-surface leading-tight">${esc(ev.title)}</h3>
@@ -843,9 +909,9 @@ function renderCard(ev) {
         <div class="flex items-center gap-sm ${ev.cancelled ? 'opacity-50' : ''}">
           <div class="flex flex-col items-center justify-center w-10 h-10 rounded-lg shrink-0
                       ${ev.cancelled ? 'bg-surface-container-high' : 'bg-primary'}">
-            <span class="text-[9px] font-bold leading-none uppercase tracking-wider
+            <span class="text-cal-month uppercase tracking-wider
                          ${ev.cancelled ? 'text-on-surface-variant' : 'text-on-primary'}">${month}</span>
-            <span class="text-[19px] font-bold leading-none
+            <span class="text-cal-day
                          ${ev.cancelled ? 'text-on-surface-variant' : 'text-on-primary'}">${dayNum}</span>
           </div>
           <div class="min-w-0">
@@ -862,7 +928,7 @@ function renderCard(ev) {
             <span class="text-label-md ${st.labelCls} font-bold">${st.label}</span>
           </div>
           <div class="h-2 w-full rounded-full bg-surface-variant overflow-hidden">
-            <div class="h-full rounded-full progress-fill ${st.barCls}" style="width:${st.pct}%"></div>
+            <div class="h-full rounded-full progress-fill ${st.barCls}" style="transform:scaleX(${(st.pct/100).toFixed(4)})"></div>
           </div>
         </div>
       </div>
@@ -977,7 +1043,7 @@ function renderDetail() {
   if (ev.cancelled) {
     actionPanel = `
       <section class="bg-error-container border border-error rounded-xl p-md flex items-start gap-sm">
-        <span class="material-symbols-outlined text-[24px] text-error icon-fill mt-xs shrink-0">cancel</span>
+        <span class="material-symbols-outlined text-[24px] text-error icon-fill mt-xs shrink-0" aria-hidden="true">cancel</span>
         <div>
           <p class="text-label-lg font-bold text-on-error-container">Event Cancelled</p>
           <p class="text-body-md text-on-error-container/80">Cancelled by ${esc(ev.host)}.</p>
@@ -989,7 +1055,7 @@ function renderDetail() {
                       flex flex-col gap-sm relative overflow-hidden shadow-card">
         <div class="absolute top-0 left-0 w-full h-1 bg-primary"></div>
         <div class="flex items-center gap-sm">
-          <span class="material-symbols-outlined text-[22px] text-primary icon-fill">star</span>
+          <span class="material-symbols-outlined text-[22px] text-primary icon-fill" aria-hidden="true">star</span>
           <h3 class="text-headline-sm text-on-surface">You're the host</h3>
         </div>
         <p class="text-body-md text-on-surface-variant">
@@ -999,13 +1065,13 @@ function renderDetail() {
           <button onclick="navigate('manage','${ev.id}')"
             class="w-full h-12 bg-primary text-on-primary text-label-lg rounded-full
                    hover:opacity-90 transition-opacity flex items-center justify-center gap-xs shadow-sm">
-            <span class="material-symbols-outlined text-[20px]">edit</span>
+            <span class="material-symbols-outlined text-[20px]" aria-hidden="true">edit</span>
             Edit Details
           </button>
           <button onclick="actionCancel('${ev.id}')"
             class="w-full h-12 rounded-full border-2 border-error text-error
                    text-label-lg hover:bg-error-container transition-colors flex items-center justify-center gap-xs">
-            <span class="material-symbols-outlined text-[20px]">cancel</span>
+            <span class="material-symbols-outlined text-[20px]" aria-hidden="true">cancel</span>
             Cancel Event
           </button>
         </div>
@@ -1016,7 +1082,7 @@ function renderDetail() {
                       flex flex-col gap-sm relative overflow-hidden">
         <div class="absolute top-0 left-0 w-full h-1 bg-secondary"></div>
         <div class="flex items-center gap-sm">
-          <span class="material-symbols-outlined text-[22px] text-secondary icon-fill">check_circle</span>
+          <span class="material-symbols-outlined text-[22px] text-secondary icon-fill" aria-hidden="true">check_circle</span>
           <h3 class="text-headline-sm text-on-secondary-container">You're going!</h3>
         </div>
         <p class="text-body-md text-on-secondary-container/80">
@@ -1033,13 +1099,13 @@ function renderDetail() {
       <button onclick="actionManage('${ev.id}')"
         class="w-full h-11 mt-sm rounded-full border border-outline text-on-surface-variant
                text-label-md hover:bg-surface-container transition-colors flex items-center justify-center gap-xs">
-        <span class="material-symbols-outlined text-[18px]">manage_accounts</span>
+        <span class="material-symbols-outlined text-[18px]" aria-hidden="true">manage_accounts</span>
         Manage my attendance
       </button>` : '';
     actionPanel = `
       <section class="bg-surface-container border border-surface-variant rounded-xl p-md flex flex-col gap-sm">
         <div class="flex items-center gap-sm">
-          <span class="material-symbols-outlined text-[24px] text-on-surface-variant">group_off</span>
+          <span class="material-symbols-outlined text-[24px] text-on-surface-variant" aria-hidden="true">group_off</span>
           <div>
             <p class="text-label-lg font-bold text-on-surface">Event is Full</p>
             <p class="text-body-md text-on-surface-variant">All spots have been taken.</p>
@@ -1052,7 +1118,7 @@ function renderDetail() {
       <button onclick="actionManage('${ev.id}')"
         class="w-full h-11 rounded-full border border-outline text-on-surface-variant
                text-label-md hover:bg-surface-container transition-colors flex items-center justify-center gap-xs">
-        <span class="material-symbols-outlined text-[18px]">manage_accounts</span>
+        <span class="material-symbols-outlined text-[18px]" aria-hidden="true">manage_accounts</span>
         Already attending? Manage
       </button>` : '';
     actionPanel = `
@@ -1067,7 +1133,7 @@ function renderDetail() {
           class="w-full h-12 bg-primary-container text-on-primary text-label-lg rounded-full
                  hover:bg-primary transition-colors flex items-center justify-center gap-xs
                  shadow-sm active:scale-[0.98]">
-          <span class="material-symbols-outlined text-[20px]">check_circle</span>
+          <span class="material-symbols-outlined text-[20px]" aria-hidden="true">check_circle</span>
           Confirm &amp; Join
         </button>
         ${manageBtn}
@@ -1085,7 +1151,7 @@ function renderDetail() {
           ${esc(name.charAt(0).toUpperCase())}
         </div>
         <span class="text-body-md text-on-surface flex-1">${esc(name)}</span>
-        ${isHost ? `<span class="bg-surface-container px-2 py-[3px] rounded text-[10px] font-bold
+        ${isHost ? `<span class="bg-surface-container px-2 py-[3px] rounded text-label-xs font-bold
                                 text-on-surface-variant uppercase tracking-wider">Host</span>` : ''}
       </li>`;
   }).join('');
@@ -1094,16 +1160,18 @@ function renderDetail() {
     <header class="sticky top-0 z-10 bg-surface/95 backdrop-blur-md border-b border-surface-variant
                    px-container-margin py-sm flex items-center gap-sm">
       <button onclick="navigate('board')"
+        aria-label="Back to events board"
         class="w-12 h-12 flex items-center justify-center rounded-full
                hover:bg-surface-container transition-colors -ml-2 shrink-0">
-        <span class="material-symbols-outlined text-[24px] text-on-surface">arrow_back</span>
+        <span class="material-symbols-outlined text-[24px] text-on-surface" aria-hidden="true">arrow_back</span>
       </button>
       <h1 class="text-headline-sm text-on-surface flex-1 truncate">${esc(ev.title)}</h1>
       ${host ? `
         <button onclick="navigate('manage','${ev.id}')"
+          aria-label="Manage event settings"
           class="w-12 h-12 flex items-center justify-center rounded-full
                  hover:bg-surface-container transition-colors text-on-surface-variant shrink-0">
-          <span class="material-symbols-outlined text-[22px]">settings</span>
+          <span class="material-symbols-outlined text-[22px]" aria-hidden="true">settings</span>
         </button>` : ''}
     </header>
 
@@ -1115,23 +1183,23 @@ function renderDetail() {
           <div class="flex items-center justify-center rounded-full
                       ${ev.cancelled ? 'bg-surface-container text-on-surface-variant' : 'bg-secondary-container text-on-secondary-container'}
                       w-14 h-14 shrink-0">
-            <span class="material-symbols-outlined text-[32px]">${CAT_ICON[ev.category]}</span>
+            <span class="material-symbols-outlined text-[32px]" aria-hidden="true">${CAT_ICON[ev.category]}</span>
           </div>
           <div>
             <h2 class="text-headline-lg text-on-surface leading-tight">${esc(ev.title)}</h2>
             <span class="inline-flex items-center gap-xs bg-secondary-container text-on-secondary-container
                          px-sm py-xs rounded-full text-label-md mt-xs">
-              ${ev.category === 'sports' ? '⚽' : '🍜'} ${CAT_LABEL[ev.category]}
+              <span aria-hidden="true">${ev.category === 'sports' ? '⚽' : '🍜'}</span> ${CAT_LABEL[ev.category]}
             </span>
           </div>
         </div>
         <div class="flex flex-col gap-sm mt-xs">
           <div class="flex items-center gap-base text-on-surface-variant">
-            <span class="material-symbols-outlined text-[20px] shrink-0">person</span>
+            <span class="material-symbols-outlined text-[20px] shrink-0" aria-hidden="true">person</span>
             <span class="text-label-lg">Hosted by ${esc(ev.host)}</span>
           </div>
           <div class="flex items-center gap-base text-on-surface-variant">
-            <span class="material-symbols-outlined text-[20px] shrink-0">location_on</span>
+            <span class="material-symbols-outlined text-[20px] shrink-0" aria-hidden="true">location_on</span>
             <span class="text-body-md">${esc(ev.location)}</span>
           </div>
         </div>
@@ -1141,9 +1209,9 @@ function renderDetail() {
         <div class="flex items-center gap-sm mt-sm p-sm rounded-xl border border-outline-variant bg-surface-container-low">
           <div class="flex flex-col items-center justify-center w-14 h-14 rounded-xl shrink-0
                       ${ev.cancelled ? 'bg-surface-container-high' : 'bg-primary'}">
-            <span class="text-[11px] font-bold leading-none uppercase tracking-wider
+            <span class="text-cal-month-lg uppercase tracking-wider
                          ${ev.cancelled ? 'text-on-surface-variant' : 'text-on-primary'}">${month}</span>
-            <span class="text-[28px] font-bold leading-none
+            <span class="text-cal-day-lg
                          ${ev.cancelled ? 'text-on-surface-variant' : 'text-on-primary'}">${dayNum}</span>
           </div>
           <div>
@@ -1160,7 +1228,7 @@ function renderDetail() {
         class="w-full h-11 rounded-full border border-outline-variant text-on-surface-variant
                text-label-lg hover:bg-surface-container transition-colors
                flex items-center justify-center gap-sm">
-        <span class="material-symbols-outlined text-[20px]">share</span>
+        <span class="material-symbols-outlined text-[20px]" aria-hidden="true">share</span>
         Share Event
       </button>
 
@@ -1177,7 +1245,7 @@ function renderDetail() {
           <span class="text-label-lg text-on-surface-variant">${ev.attendees.length} / ${ev.cap}</span>
         </div>
         <div class="h-2 w-full bg-surface-container-high rounded-full overflow-hidden mb-md">
-          <div class="h-full ${st.barCls} rounded-full progress-fill" style="width:${st.pct}%"></div>
+          <div class="h-full ${st.barCls} rounded-full progress-fill" style="transform:scaleX(${(st.pct/100).toFixed(4)})"></div>
         </div>
         ${ev.attendees.length
           ? `<ul class="flex flex-col gap-base">${attendeeItems}</ul>`
@@ -1263,7 +1331,7 @@ function renderManage() {
       <div class="flex items-start gap-md mb-md">
         <div class="w-12 h-12 rounded-full shrink-0 flex items-center justify-center text-[24px]
                     ${ev.cancelled ? 'bg-surface-container text-on-surface-variant' : 'bg-secondary-container text-on-secondary-container'}">
-          ${ev.category==='sports' ? '⚽' : '🍜'}
+          <span aria-hidden="true">${ev.category==='sports' ? '⚽' : '🍜'}</span>
         </div>
         <div class="flex-1 min-w-0">
           <span class="inline-flex bg-secondary-container text-on-secondary-container
@@ -1298,7 +1366,7 @@ function renderManage() {
             ${ev.attendees.length} / ${ev.cap}
           </p>
           <div class="w-full h-2 bg-surface-variant rounded-full mt-sm overflow-hidden">
-            <div class="h-full bg-secondary rounded-full progress-fill" style="width:${pct}%"></div>
+            <div class="h-full bg-secondary rounded-full progress-fill" style="transform:scaleX(${(pct/100).toFixed(4)})"></div>
           </div>
         </div>
       </div>
@@ -1315,13 +1383,13 @@ function renderManage() {
         <button onclick="state.editing=true; render()"
           class="w-full min-h-[48px] bg-primary text-on-primary rounded-md text-label-lg
                  flex items-center justify-center gap-xs hover:bg-surface-tint transition-colors">
-          <span class="material-symbols-outlined text-[20px]">edit</span>
+          <span class="material-symbols-outlined text-[20px]" aria-hidden="true">edit</span>
           Edit Details
         </button>
         <button onclick="actionCancel('${ev.id}')"
           class="w-full min-h-[48px] border-2 border-error text-error rounded-md text-label-lg
                  flex items-center justify-center gap-xs hover:bg-error-container transition-colors">
-          <span class="material-symbols-outlined text-[20px]">cancel</span>
+          <span class="material-symbols-outlined text-[20px]" aria-hidden="true">cancel</span>
           Cancel Event
         </button>
       </div>` : ''}`;
@@ -1333,7 +1401,7 @@ function renderManage() {
       <div class="px-container-margin pt-md">
         <div class="bg-error-container text-on-error-container p-md rounded-xl
                     flex flex-col items-center gap-base border border-error text-center">
-          <span class="material-symbols-outlined text-[48px] icon-fill text-error">cancel</span>
+          <span class="material-symbols-outlined text-[48px] icon-fill text-error" aria-hidden="true">cancel</span>
           <h2 class="text-headline-md text-on-error-container">Event Cancelled</h2>
           <p class="text-body-md text-on-error-container/80">
             This event has been cancelled. Details remain for reference.
@@ -1367,6 +1435,10 @@ function renderLoading() {
 // ─── Main render ─────────────────────────────────────────────────────────────
 function render() {
   const app = document.getElementById('app');
+  const activeEl = document.activeElement;
+  // Restore focus to main content when the user was interacting with the app
+  // (covers: in-app clicks, modal close returning to body, programmatic navigation)
+  const shouldRestoreFocus = activeEl && (app.contains(activeEl) || activeEl === document.body);
   switch (state.view) {
     case 'loading': app.innerHTML = renderLoading(); break;
     case 'board':   app.innerHTML = renderBoard();   break;
@@ -1374,6 +1446,11 @@ function render() {
     case 'detail':  app.innerHTML = renderDetail();  break;
     case 'manage':  app.innerHTML = renderManage();  break;
     default:        app.innerHTML = renderBoard();
+  }
+  if (shouldRestoreFocus) {
+    const target = app.querySelector('main') ?? app;
+    target.setAttribute('tabindex', '-1');
+    target.focus({ preventScroll: true });
   }
 }
 
