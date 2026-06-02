@@ -286,6 +286,7 @@ const state = {
 
 // ─── Events (Firestore) ──────────────────────────────────────────────────────
 let events = [];
+const _deepLinkId = new URLSearchParams(location.search).get('event');
 
 onSnapshot(eventsCol, snap => {
   events = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -296,7 +297,14 @@ onSnapshot(eventsCol, snap => {
   });
   _eventParticipants = [...participants];
   _rebuildAllUsers();
-  if (state.view === 'loading') state.view = 'board';
+  if (state.view === 'loading') {
+    if (_deepLinkId && events.find(e => e.id === _deepLinkId)) {
+      state.view = 'detail';
+      state.selectedId = _deepLinkId;
+    } else {
+      state.view = 'board';
+    }
+  }
   render();
 }, err => {
   console.error('Firestore error', err);
@@ -406,6 +414,11 @@ function navigate(view, id = null) {
   state.view = view;
   state.selectedId = id;
   state.editing = false;
+  if (view === 'detail' && id) {
+    history.pushState(null, '', `?event=${id}`);
+  } else {
+    history.replaceState(null, '', location.pathname);
+  }
   render();
   window.scrollTo({ top: 0 });
 }
@@ -592,6 +605,18 @@ function actionLeave(id) {
   writeDoc(updateDoc(eventDoc(id), { attendees: arrayRemove(name) }), 'Could not leave — check your connection.');
   toast("You've left the event");
   render();
+}
+
+function actionShare(id) {
+  const ev  = getEvent(id);
+  const url = `${location.origin}${location.pathname}?event=${id}`;
+  if (navigator.share) {
+    navigator.share({ url, title: ev?.title ?? 'Tawagather Event' }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(url)
+      .then(() => toast('Link copied!'))
+      .catch(() => toast('Could not copy link.'));
+  }
 }
 
 function actionManage(id) {
@@ -1062,6 +1087,11 @@ function renderDetail() {
         <span class="material-symbols-outlined text-[24px] text-on-surface">arrow_back</span>
       </button>
       <h1 class="text-headline-sm text-on-surface flex-1 truncate">${esc(ev.title)}</h1>
+      <button onclick="actionShare('${ev.id}')"
+        class="w-12 h-12 flex items-center justify-center rounded-full
+               hover:bg-surface-container transition-colors text-on-surface-variant shrink-0">
+        <span class="material-symbols-outlined text-[22px]">share</span>
+      </button>
       ${host ? `
         <button onclick="navigate('manage','${ev.id}')"
           class="w-12 h-12 flex items-center justify-center rounded-full
@@ -1339,6 +1369,7 @@ window.actionJoin    = actionJoin;
 window.actionLeave   = actionLeave;
 window.actionManage  = actionManage;
 window.actionCancel  = actionCancel;
+window.actionShare   = actionShare;
 window.submitCreate  = submitCreate;
 window.submitEdit    = submitEdit;
 window.state         = state;
@@ -1346,6 +1377,20 @@ window.render        = render;
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && state.view !== 'loading') render();
+});
+
+window.addEventListener('popstate', () => {
+  const id = new URLSearchParams(location.search).get('event');
+  if (id) {
+    state.view = 'detail';
+    state.selectedId = id;
+  } else {
+    sessionName = null;
+    state.view = 'board';
+    state.selectedId = null;
+  }
+  state.editing = false;
+  render();
 });
 
 // ─── Boot ────────────────────────────────────────────────────────────────────
