@@ -1099,11 +1099,6 @@ function renderDetail() {
         <span class="material-symbols-outlined text-[24px] text-on-surface">arrow_back</span>
       </button>
       <h1 class="text-headline-sm text-on-surface flex-1 truncate">${esc(ev.title)}</h1>
-      <button onclick="actionShare('${ev.id}')"
-        class="w-12 h-12 flex items-center justify-center rounded-full
-               hover:bg-surface-container transition-colors text-on-surface-variant shrink-0">
-        <span class="material-symbols-outlined text-[22px]">share</span>
-      </button>
       ${host ? `
         <button onclick="navigate('manage','${ev.id}')"
           class="w-12 h-12 flex items-center justify-center rounded-full
@@ -1160,6 +1155,14 @@ function renderDetail() {
       </section>
 
       ${actionPanel}
+
+      <button onclick="actionShare('${ev.id}')"
+        class="w-full h-11 rounded-full border border-outline-variant text-on-surface-variant
+               text-label-lg hover:bg-surface-container transition-colors
+               flex items-center justify-center gap-sm">
+        <span class="material-symbols-outlined text-[20px]">share</span>
+        Share Event
+      </button>
 
       ${ev.description ? `
         <section class="pt-xs">
