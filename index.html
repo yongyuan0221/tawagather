@@ -331,6 +331,23 @@ function fmtDateTimeLong(iso) {
          ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
+function fmtDateParts(iso) {
+  const d   = new Date(iso);
+  const now = new Date();
+  const tom = new Date(now); tom.setDate(now.getDate() + 1);
+  const isSameDay = (a, b) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  const time     = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  const month    = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+  const dayNum   = d.getDate();
+  const weekday  = isSameDay(d, now) ? 'Today'
+                 : isSameDay(d, tom) ? 'Tomorrow'
+                 : d.toLocaleDateString('en-US', { weekday: 'long' });
+  const fullDate = isSameDay(d, now) || isSameDay(d, tom) ? null
+                 : d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+  return { month, dayNum, weekday, fullDate, time };
+}
+
 function toLocalDtInput(iso) {
   // Convert ISO to value compatible with datetime-local input
   const d = new Date(iso);
@@ -780,11 +797,26 @@ function renderCard(ev) {
           <div class="flex-1 min-w-0">
             <h3 class="text-headline-md text-on-surface leading-tight">${esc(ev.title)}</h3>
             <p class="text-body-md text-on-surface-variant mt-xs truncate">${esc(ev.location)}</p>
-            <p class="text-body-md text-on-surface-variant">
-              Host: ${esc(ev.host)} · ${fmtDateTime(ev.dateTime)}
-            </p>
+            <p class="text-body-md text-on-surface-variant">Host: ${esc(ev.host)}</p>
           </div>
         </div>
+        ${(() => {
+          const { month, dayNum, weekday, fullDate, time } = fmtDateParts(ev.dateTime);
+          return `
+        <div class="flex items-center gap-sm ${ev.cancelled ? 'opacity-50' : ''}">
+          <div class="flex flex-col items-center justify-center w-10 h-10 rounded-lg shrink-0
+                      ${ev.cancelled ? 'bg-surface-container-high' : 'bg-primary'}">
+            <span class="text-[9px] font-bold leading-none uppercase tracking-wider
+                         ${ev.cancelled ? 'text-on-surface-variant' : 'text-on-primary'}">${month}</span>
+            <span class="text-[19px] font-bold leading-none
+                         ${ev.cancelled ? 'text-on-surface-variant' : 'text-on-primary'}">${dayNum}</span>
+          </div>
+          <div class="min-w-0">
+            <p class="text-label-lg font-semibold text-on-surface leading-tight">${weekday}${fullDate ? `, ${fullDate}` : ''}</p>
+            <p class="text-label-md text-on-surface-variant leading-tight">${time}</p>
+          </div>
+        </div>`;
+        })()}
         <div class="flex flex-col gap-base bg-surface-container-low p-sm rounded-md border border-surface-variant/50">
           <div class="flex justify-between items-center">
             <span class="text-label-md text-on-surface-variant uppercase tracking-wide">
@@ -1056,20 +1088,33 @@ function renderDetail() {
             </span>
           </div>
         </div>
-        <div class="flex flex-col gap-xs mt-xs">
+        <div class="flex flex-col gap-sm mt-xs">
           <div class="flex items-center gap-base text-on-surface-variant">
             <span class="material-symbols-outlined text-[20px] shrink-0">person</span>
             <span class="text-label-lg">Hosted by ${esc(ev.host)}</span>
-          </div>
-          <div class="flex items-center gap-base text-on-surface-variant">
-            <span class="material-symbols-outlined text-[20px] shrink-0">calendar_today</span>
-            <span class="text-body-md">${fmtDateTimeLong(ev.dateTime)}</span>
           </div>
           <div class="flex items-center gap-base text-on-surface-variant">
             <span class="material-symbols-outlined text-[20px] shrink-0">location_on</span>
             <span class="text-body-md">${esc(ev.location)}</span>
           </div>
         </div>
+        ${(() => {
+          const { month, dayNum, weekday, fullDate, time } = fmtDateParts(ev.dateTime);
+          return `
+        <div class="flex items-center gap-sm mt-sm p-sm rounded-xl border border-outline-variant bg-surface-container-low">
+          <div class="flex flex-col items-center justify-center w-14 h-14 rounded-xl shrink-0
+                      ${ev.cancelled ? 'bg-surface-container-high' : 'bg-primary'}">
+            <span class="text-[11px] font-bold leading-none uppercase tracking-wider
+                         ${ev.cancelled ? 'text-on-surface-variant' : 'text-on-primary'}">${month}</span>
+            <span class="text-[28px] font-bold leading-none
+                         ${ev.cancelled ? 'text-on-surface-variant' : 'text-on-primary'}">${dayNum}</span>
+          </div>
+          <div>
+            <p class="text-headline-sm text-on-surface font-semibold leading-tight">${weekday}${fullDate ? `, ${fullDate}` : ''}</p>
+            <p class="text-body-md text-primary font-semibold leading-tight mt-xs">${time}</p>
+          </div>
+        </div>`;
+        })()}
       </section>
 
       ${actionPanel}
